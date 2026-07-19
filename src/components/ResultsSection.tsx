@@ -341,8 +341,11 @@ export default function ResultsSection({
     const aStats = getBestFareAndStatus(a);
     const bStats = getBestFareAndStatus(b);
     
-    // In high-confirm-chance tab, prioritize the cheapest route regardless of route type
+    // In high-confirm-chance tab, prioritize Available routes first, then by cheapest fare
     if (activeFilter === 'high-confirm-chance') {
+       if (aStats.statusScore !== bStats.statusScore) {
+          return aStats.statusScore - bStats.statusScore;
+       }
        return aStats.minFare - bStats.minFare;
     }
     
