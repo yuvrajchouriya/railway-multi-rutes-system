@@ -365,8 +365,8 @@ export default function ResultsSection({
   });
 
   return (
-    <div className="space-y-2 md:space-y-4 pt-2 md:pt-0">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mx-2 md:mx-0">
+    <div className="space-y-3 pt-2 md:pt-0">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mx-1.5 md:mx-0">
         {/* ── Route Header Info ────────────────────────────── */}
       <div className="bg-white p-4 pb-2 border-b border-gray-100 flex items-center justify-between">
         <div>
@@ -430,7 +430,7 @@ export default function ResultsSection({
       </div>
       </div>
 
-      <div className="p-1.5 md:p-4 bg-gray-50 space-y-2 md:space-y-4 min-h-screen">
+      <div className="p-1 md:p-4 bg-gray-50 space-y-2 md:space-y-4 min-h-screen mx-1.5 md:mx-0 rounded-lg md:rounded-none">
         {filtered.length > 0 ? (
           filtered.map((route, idx) => (
              <RouteCard 

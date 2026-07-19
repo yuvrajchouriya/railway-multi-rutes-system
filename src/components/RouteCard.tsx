@@ -781,8 +781,8 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
         <div className="border-t border-[#3A506B] p-4 bg-[#15203b] space-y-4">
           
           {/* Refresh & Last Updated Bar */}
-          <div className="flex justify-between items-center bg-[var(--color-brand-navy-card)] border border-[#3A506B] rounded-lg px-4 py-2">
-             <div className="text-sm font-medium text-gray-300">
+          <div className="flex flex-row justify-between items-center bg-[var(--color-brand-navy-card)] border border-[#3A506B] rounded-lg px-2 py-2 md:px-4 md:py-2 gap-2">
+             <div className="text-[11px] md:text-sm font-medium text-gray-300 leading-tight">
                 {latestUpdatedAt ? (
                    <>⏳ Last updated: <span className="text-white font-bold">{getUpdatedAgoText()}</span></>
                 ) : (
@@ -792,13 +792,13 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
              <button
                onClick={handleManualRefresh}
                disabled={isRefreshing || isAnyFetching}
-               className={`flex items-center gap-2 text-sm font-bold px-3 py-1.5 rounded-md transition-colors ${
+               className={`flex items-center gap-1.5 md:gap-2 text-[11px] md:text-sm font-bold px-2 py-1 md:px-3 md:py-1.5 rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
                  isRefreshing || isAnyFetching
                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
                  : 'bg-[var(--color-brand-blue)] text-white hover:bg-blue-600'
                }`}
              >
-               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+               <RefreshCw className={`w-3.5 h-3.5 md:w-4 md:h-4 ${(isRefreshing || isAnyFetching) ? 'animate-spin' : ''}`} />
                {isRefreshing ? 'Refreshing...' : 'Refresh'}
              </button>
           </div>
