@@ -366,30 +366,26 @@ export default function ResultsSection({
 
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-transparent overflow-hidden">
         {/* ── Route Header Info ────────────────────────────── */}
-      <div className="bg-white p-4 pb-2 border-b border-gray-100 flex items-center justify-between">
+      <div className="bg-transparent p-4 pb-2 flex items-center justify-between">
         <div>
           {from && to && (
-            <h2 className="text-xl md:text-xl font-bold text-gray-900 mb-0 flex items-center gap-2">
+            <h2 className="text-xl md:text-xl font-bold text-white mb-0 flex items-center gap-2">
               {from} <span className="text-[var(--color-brand-blue)] text-lg leading-none">»</span> {to}
             </h2>
           )}
           {/* Hide subtitle on mobile, show on desktop */}
-          <p className="hidden md:block text-sm text-gray-500 font-medium mt-1">
+          <p className="hidden md:block text-sm text-gray-400 font-medium mt-1">
             {allRoutes.length} Route{allRoutes.length > 1 ? 's' : ''} Found
           </p>
         </div>
-        {/* Mobile Edit Icon */}
-        <button className="text-[var(--color-brand-blue)] bg-blue-50 p-2 rounded-full md:hidden">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-        </button>
       </div>
 
       {/* ── 7-Day Circular Date Picker ────────────────────── */}
       <div 
         ref={scrollContainerRef}
-        className="bg-gray-50 px-3 md:px-4 py-3 border-b border-gray-100 flex gap-2 md:gap-4 overflow-x-auto scrollbar-hide"
+        className="bg-transparent px-3 md:px-4 py-3 flex gap-2 md:gap-4 overflow-x-auto scrollbar-hide"
       >
         {datesList.map((d, i) => {
           const apiDate = formatDateForApi(d);
@@ -404,11 +400,11 @@ export default function ResultsSection({
               <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-base md:text-lg font-bold shadow-sm border ${
                 isSelected 
                   ? 'bg-[var(--color-brand-blue)] text-white border-blue-600' 
-                  : 'bg-white text-gray-800 border-gray-200 hover:border-blue-300'
+                  : 'bg-[#111A2D] text-gray-300 border-[#2A3B54] hover:border-[var(--color-brand-blue)]'
               }`}>
                 {getDayNum(d)}
               </div>
-              <span className={`text-[10px] md:text-xs mt-1 font-medium ${isSelected ? 'text-[var(--color-brand-blue)]' : 'text-gray-500'}`}>
+              <span className={`text-[10px] md:text-xs mt-1 font-medium ${isSelected ? 'text-[var(--color-brand-blue)]' : 'text-gray-400'}`}>
                 {getDayName(d)}
               </span>
             </button>
@@ -417,15 +413,15 @@ export default function ResultsSection({
       </div>
 
       {/* ── Filter bar ─────────────────────────────────── */}
-      <div className="bg-white px-3 md:px-4 py-3 flex gap-2 md:gap-3 overflow-x-auto scrollbar-hide">
+      <div className="bg-transparent px-3 md:px-4 py-3 flex gap-2 md:gap-3 overflow-x-auto scrollbar-hide">
         {FILTERS.map(f => (
           <button
             key={f.id}
             onClick={() => setActiveFilter(f.id)}
             className={`flex-shrink-0 px-4 py-1.5 rounded-full text-[13px] md:text-sm font-semibold border transition-colors ${
               activeFilter === f.id
-                ? 'bg-transparent text-[var(--color-brand-blue)] border-[var(--color-brand-blue)]'
-                : 'bg-transparent text-gray-500 border-gray-300 hover:border-[var(--color-brand-blue)] hover:text-[var(--color-brand-blue)]'
+                ? 'bg-[var(--color-brand-blue)] text-white border-[var(--color-brand-blue)]'
+                : 'bg-transparent text-gray-400 border-[#2A3B54] hover:border-[var(--color-brand-blue)] hover:text-[var(--color-brand-blue)]'
             }`}
           >
             {f.label}
@@ -434,7 +430,7 @@ export default function ResultsSection({
       </div>
       </div>
 
-      <div className="p-4 bg-gray-50 space-y-4">
+      <div className="p-4 bg-transparent space-y-4">
         {filtered.length > 0 ? (
           filtered.map((route, idx) => (
              <RouteCard 
