@@ -355,19 +355,13 @@ export async function findRoutes(
   date: string
 ): Promise<{ directRoutes: Route[]; connectingRoutes: Route[] }> {
   const directRoutes = await findDirectRoutes(from, to, date);
-  const connectingRoutes = await findConnectingRoutes(from, to, date, directRoutes.length > 0);
-  
-  // Time-based Intelligence Filter: Remove connecting routes that are absurdly long
-  let filteredConnecting = connectingRoutes;
+  let fastestDirectMins = null;
   if (directRoutes.length > 0) {
-    const minDirectTime = Math.min(...directRoutes.map(r => r.totalDurationMinutes));
-    // Max allowed connecting time: min direct time + 8 hours, or 1.5x direct time, whichever is greater
-    const maxAllowedTime = Math.max(minDirectTime + 480, minDirectTime * 1.5);
-    filteredConnecting = connectingRoutes.filter(r => r.totalDurationMinutes <= maxAllowedTime);
-    pushLog(`⏰ Filtered out ${connectingRoutes.length - filteredConnecting.length} overly long connecting routes`);
+     fastestDirectMins = Math.min(...directRoutes.map(r => r.totalDurationMinutes));
   }
+  const connectingRoutes = await findConnectingRoutes(from, to, date, fastestDirectMins);
   
-  return { directRoutes, connectingRoutes: filteredConnecting };
+  return { directRoutes, connectingRoutes };
 }
 
 function applyTags(route: Route, allRoutes: Route[]) {
