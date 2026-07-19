@@ -21,8 +21,8 @@ interface Props {
 // ── Tag badge pill ─────────────────────────────────────────
 const TAG_CONFIG = {
   'hidden-quota': { label: 'END-TO-END', bg: 'bg-[var(--color-brand-gold)] text-gray-900 border-[var(--color-brand-gold)]' },
-  'best-availability': { label: 'RECOMMENDED', bg: 'bg-white text-[var(--color-brand-gold)] border-[var(--color-brand-gold)]' },
-  'high-confirm-chance': { label: 'RECOMMENDED', bg: 'bg-white text-[var(--color-brand-gold)] border-[var(--color-brand-gold)]' },
+  'best-availability': { label: 'RECOMMENDED', bg: 'bg-[#00C853] text-gray-900 border-[#00C853]' },
+  'high-confirm-chance': { label: 'RECOMMENDED', bg: 'bg-[#00C853] text-gray-900 border-[#00C853]' },
   'cheapest':  { label: 'CHEAPEST',   bg: 'bg-white text-teal-600 border-teal-600' },
   'direct':    { label: 'DIRECT',     bg: 'bg-white text-gray-500 border-gray-400' },
   'connecting':{ label: 'CONNECTING', bg: 'bg-white text-gray-500 border-gray-400' },
@@ -85,7 +85,7 @@ function LegCard({ leg, showDivider = false, liveClasses }: { leg: TrainLeg; sho
   return (
     <div className={showDivider ? 'pt-4 border-t border-[#3A506B]' : ''}>
       {/* Train header */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-3 gap-3 md:gap-0">
         <div>
           <span className="text-[15px] font-bold text-white">{leg.trainNumber}</span>
           <span className="ml-2 text-[16px] font-bold text-white">{leg.trainName}</span>
@@ -537,170 +537,242 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
       {/* ── Collapsed Header ─────────────────────────────── */}
       <div className="p-5 relative">
         
-        {/* Top row: Tags */}
-        <div className="flex items-center gap-2 flex-wrap mb-3">
-          {displayTags.slice(0, 3).map(tag => {
-            const cfg = TAG_CONFIG[tag as keyof typeof TAG_CONFIG];
-            return cfg ? (
-              <span key={tag} className={`text-[12px] font-bold px-2 py-0.5 rounded-full border ${cfg.bg}`}>
-                {cfg.label}
-              </span>
-            ) : null;
-          })}
-        </div>
-        
-        {/* Title */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="w-24"></div> {/* spacer for centering */}
-          
-          <h3 className="text-[17px] font-black text-white text-center flex-1">{headline}</h3>
-          
-          <div className="text-right w-24">
-             {calculatedFare > 0 && !isAnyFetching && (
-               <div className="text-[17px] font-black text-white">
-                 <span className="text-[12px] text-gray-400 font-medium mr-1">from</span>
-                 ₹{calculatedFare}
-               </div>
-             )}
-          </div>
-        </div>
-
-        {/* MMT-style route timeline graphic */}
+        {/* Top row: Tags *        {/* ── MOBILE LAYOUT ── */}
         {(() => {
           const hasBoarding = firstLeg.boardingStation !== undefined;
           const hasDropping = lastLeg.droppingStation !== undefined;
           const isExtendedOrigin = hasBoarding && firstLeg.boardingStation!.code !== firstLeg.fromStation.code;
           const isExtendedDest = hasDropping && lastLeg.droppingStation!.code !== lastLeg.toStation.code;
-          
-          if (!isExtendedOrigin && !isExtendedDest) {
-            return (
-              <div className="flex items-center justify-between mb-6 relative">
-                
-                {/* From */}
-                <div className="flex flex-col items-center w-20 sm:w-28 relative z-10 top-[-18px]">
-                  <div className="text-[10px] sm:text-[12px] font-bold text-white text-center leading-tight mb-1 truncate w-full px-1">
-                    {firstLeg.fromStation.name}
-                  </div>
-                  <div className="w-3 h-3 rounded-full bg-gray-400"></div>
-                </div>
-
-                {/* Line and Transfer Stations */}
-                <div className="flex-1 relative flex items-center justify-center mx-1 top-[2px]">
-                  <div className="absolute w-full h-[1px] bg-[#3A506B]"></div>
-                  
-                  {route.type === 'direct' ? (
-                    <div className="flex-1 flex justify-center z-10 top-[-20px] relative">
-                      <div className="bg-[var(--color-brand-navy-card)] px-1">
-                        <Train className="w-5 h-5 text-[var(--color-brand-blue)]" />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="w-full flex justify-between absolute top-[-20px] z-10 px-4">
-                      <div className="bg-[var(--color-brand-navy-card)] px-1">
-                        <Train className="w-5 h-5 text-[var(--color-brand-blue)]" />
-                      </div>
-                      
-                      {route.transferStations.map((s, i) => (
-                        <div key={i} className="flex flex-col items-center relative bg-[var(--color-brand-navy-card)] px-1">
-                          <div className="text-[11px] font-bold text-gray-100 mb-1 w-24 text-center leading-tight">
-                            {s.name}
-                          </div>
-                          <div className="w-2 h-2 rounded-full border-2 border-blue-400 bg-[var(--color-brand-navy-card)]"></div>
-                        </div>
-                      ))}
-
-                      <div className="bg-[var(--color-brand-navy-card)] px-1">
-                        <Train className="w-5 h-5 text-[var(--color-brand-blue)]" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* To */}
-                <div className="flex flex-col items-center w-20 sm:w-28 relative z-10 top-[-18px]">
-                  <div className="text-[10px] sm:text-[12px] font-bold text-white text-center leading-tight mb-1 truncate w-full px-1">
-                    {lastLeg.toStation.name}
-                  </div>
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                </div>
-              </div>
-            );
-          }
+          const depStationName = isExtendedOrigin ? firstLeg.boardingStation!.name : firstLeg.fromStation.name;
+          const arrStationName = isExtendedDest ? lastLeg.droppingStation!.name : lastLeg.toStation.name;
 
           return (
-            <div className="flex items-center justify-between mb-6 relative">
-              {isExtendedOrigin && (
-                <>
-                  <div className="flex flex-col items-center w-16 relative z-10 top-[-18px] opacity-50">
-                    <div className="text-[10px] sm:text-[12px] font-bold text-white text-center leading-tight mb-1 truncate w-full px-1">
-                      {firstLeg.fromStation.name}
-                    </div>
-                    <div className="w-2 h-2 rounded-full border-2 border-gray-400 bg-transparent"></div>
-                  </div>
-                  <div className="flex-1 relative flex items-center justify-center mx-1 top-[2px]">
-                    <div className="absolute w-full h-[1px] bg-gray-500 border-t border-dashed border-gray-500"></div>
-                  </div>
-                </>
-              )}
-              
-              <div className="flex flex-col items-center w-16 relative z-10 top-[-18px]">
-                <div className="text-[10px] sm:text-[12px] font-bold text-white text-center leading-tight mb-1 truncate w-full px-1">
-                  {isExtendedOrigin ? firstLeg.boardingStation!.name : firstLeg.fromStation.name}
-                </div>
-                <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+            <div className="block md:hidden">
+              {/* Tags (Mobile) */}
+              <div className="flex items-center gap-2 flex-wrap mb-3">
+                {displayTags.slice(0, 3).map(tag => {
+                  const cfg = TAG_CONFIG[tag as keyof typeof TAG_CONFIG];
+                  return cfg ? (
+                    <span key={tag} className={`text-[10px] font-bold px-2 py-0.5 rounded-sm border ${cfg.bg}`}>
+                      {cfg.label}
+                    </span>
+                  ) : null;
+                })}
+              </div>
+
+              <div className="flex justify-between items-end mb-1">
+                <div className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Departure</div>
+                <div className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Arrival</div>
+              </div>
+              <div className="flex justify-between items-center mb-0.5">
+                <div className="text-[13px] font-bold text-white text-left truncate w-[48%]">{depStationName}</div>
+                <div className="text-[13px] font-bold text-white text-right truncate w-[48%]">{arrStationName}</div>
+              </div>
+              <div className="flex justify-between items-center mb-4">
+                <div className="text-3xl font-black text-white">{firstLeg.departureTime}</div>
+                <div className="text-3xl font-black text-white">{lastLeg.arrivalTime}</div>
               </div>
               
-              <div className="flex-1 relative flex items-center justify-center mx-1 top-[2px]">
-                <div className="absolute w-full h-[1px] bg-[#3A506B]"></div>
-                <div className="flex-1 flex justify-center z-10 top-[-20px] relative">
-                  <div className="bg-[var(--color-brand-navy-card)] px-1">
-                    <Train className="w-5 h-5 text-[var(--color-brand-blue)]" />
-                  </div>
+              <div className="flex items-center justify-center mb-6 relative">
+                <div className="absolute w-full h-[1px] bg-[#2A3B54]"></div>
+                <div className="w-3.5 h-3.5 rounded-full bg-[#2A3B54] absolute left-0 flex items-center justify-center">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-brand-blue)]"></div>
+                </div>
+                <div className="bg-[var(--color-brand-navy-card)] p-1.5 z-10 rounded border border-[#2A3B54]">
+                  <Train className="w-4 h-4 text-gray-300" />
+                </div>
+                <div className="w-3.5 h-3.5 rounded-full bg-[#2A3B54] absolute right-0 flex items-center justify-center">
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-400"></div>
                 </div>
               </div>
 
-              <div className="flex flex-col items-center w-16 relative z-10 top-[-18px]">
-                <div className="text-[10px] sm:text-[12px] font-bold text-white text-center leading-tight mb-1 truncate w-full px-1">
-                  {isExtendedDest ? lastLeg.droppingStation!.name : lastLeg.toStation.name}
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-gray-400">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                  {fmtDuration(route.totalDurationMinutes)}
                 </div>
-                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                <div className="text-right flex flex-col items-end">
+                  <span className="text-[8px] font-bold text-gray-500 uppercase tracking-wide">Fare Starting</span>
+                  <span className="text-[22px] font-black text-white leading-none">
+                    {calculatedFare > 0 && !isAnyFetching ? `₹${calculatedFare}` : '--'}
+                  </span>
+                </div>
               </div>
 
-              {isExtendedDest && (
-                <>
-                  <div className="flex-1 relative flex items-center justify-center mx-1 top-[2px]">
-                    <div className="absolute w-full h-[1px] bg-gray-500 border-t border-dashed border-gray-500"></div>
-                  </div>
-
-                  <div className="flex flex-col items-center w-16 relative z-10 top-[-18px] opacity-50">
-                    <div className="text-[10px] sm:text-[12px] font-bold text-white text-center leading-tight mb-1 truncate w-full px-1">
-                      {lastLeg.toStation.name}
-                    </div>
-                    <div className="w-2 h-2 rounded-full border-2 border-gray-400 bg-transparent"></div>
-                  </div>
-                </>
-              )}
+              <button
+                onClick={() => setExpanded(!expanded)}
+                className="w-full py-3 flex items-center justify-center gap-2 text-xs font-bold tracking-[0.1em] text-[var(--color-brand-blue)] border border-[#2A3B54] rounded-lg bg-[#111A2D]"
+              >
+                ROUTE DETAILS {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
             </div>
           );
         })()}
 
-        {/* Duration + expand button */}
-        <div className="flex items-center justify-between mt-[-10px]">
-          <div className="flex items-center gap-2 text-[15px] font-bold text-white">
-            <Clock className="w-4 h-4 text-gray-100" />
-            {fmtDuration(route.totalDurationMinutes)}
+        {/* ── DESKTOP LAYOUT ── */}
+        <div className="hidden md:block">
+          {/* Tags (Desktop) */}
+          <div className="flex items-center gap-2 flex-wrap mb-3">
+            {displayTags.slice(0, 3).map(tag => {
+              const cfg = TAG_CONFIG[tag as keyof typeof TAG_CONFIG];
+              return cfg ? (
+                <span key={tag} className={`text-[12px] font-bold px-2 py-0.5 rounded-full border ${cfg.bg}`}>
+                  {cfg.label}
+                </span>
+              ) : null;
+            })}
           </div>
 
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-2 px-4 py-1.5 text-[13px] font-bold text-[var(--color-brand-blue)] border border-[var(--color-brand-blue)] rounded-lg hover:bg-[#3A506B]/50 transition-colors"
-          >
-            DETAILS {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
+          {/* Title */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="w-24"></div> {/* spacer for centering */}
+            
+            <h3 className="text-[17px] font-black text-white text-center flex-1">{headline}</h3>
+            
+            <div className="text-right w-24">
+              {calculatedFare > 0 && !isAnyFetching && (
+                <div className="text-[17px] font-black text-white">
+                  <span className="text-[12px] text-gray-400 font-medium mr-1">from</span>
+                  ₹{calculatedFare}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* MMT-style route timeline graphic */}
+          {(() => {
+            const hasBoarding = firstLeg.boardingStation !== undefined;
+            const hasDropping = lastLeg.droppingStation !== undefined;
+            const isExtendedOrigin = hasBoarding && firstLeg.boardingStation!.code !== firstLeg.fromStation.code;
+            const isExtendedDest = hasDropping && lastLeg.droppingStation!.code !== lastLeg.toStation.code;
+            
+            if (!isExtendedOrigin && !isExtendedDest) {
+              return (
+                <div className="flex items-center justify-between mb-6 relative">
+                  
+                  {/* From */}
+                  <div className="flex flex-col items-center w-20 sm:w-28 relative z-10 top-[-18px]">
+                    <div className="text-[10px] sm:text-[12px] font-bold text-white text-center leading-tight mb-1 truncate w-full px-1">
+                      {firstLeg.fromStation.name}
+                    </div>
+                    <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                  </div>
+
+                  {/* Line and Transfer Stations */}
+                  <div className="flex-1 relative flex items-center justify-center mx-1 top-[2px]">
+                    <div className="absolute w-full h-[1px] bg-[#3A506B]"></div>
+                    
+                    {route.type === 'direct' ? (
+                      <div className="flex-1 flex justify-center z-10 top-[-20px] relative">
+                        <div className="bg-[var(--color-brand-navy-card)] px-1">
+                          <Train className="w-5 h-5 text-[var(--color-brand-blue)]" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-full flex justify-between absolute top-[-20px] z-10 px-4">
+                        <div className="bg-[var(--color-brand-navy-card)] px-1">
+                          <Train className="w-5 h-5 text-[var(--color-brand-blue)]" />
+                        </div>
+                        
+                        {route.transferStations.map((s, i) => (
+                          <div key={i} className="flex flex-col items-center relative bg-[var(--color-brand-navy-card)] px-1">
+                            <div className="text-[11px] font-bold text-gray-100 mb-1 w-24 text-center leading-tight">
+                              {s.name}
+                            </div>
+                            <div className="w-2 h-2 rounded-full border-2 border-blue-400 bg-[var(--color-brand-navy-card)]"></div>
+                          </div>
+                        ))}
+
+                        <div className="bg-[var(--color-brand-navy-card)] px-1">
+                          <Train className="w-5 h-5 text-[var(--color-brand-blue)]" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* To */}
+                  <div className="flex flex-col items-center w-20 sm:w-28 relative z-10 top-[-18px]">
+                    <div className="text-[10px] sm:text-[12px] font-bold text-white text-center leading-tight mb-1 truncate w-full px-1">
+                      {lastLeg.toStation.name}
+                    </div>
+                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div className="flex items-center justify-between mb-6 relative">
+                {isExtendedOrigin && (
+                  <>
+                    <div className="flex flex-col items-center w-16 relative z-10 top-[-18px] opacity-50">
+                      <div className="text-[10px] sm:text-[12px] font-bold text-white text-center leading-tight mb-1 truncate w-full px-1">
+                        {firstLeg.fromStation.name}
+                      </div>
+                      <div className="w-2 h-2 rounded-full border-2 border-gray-400 bg-transparent"></div>
+                    </div>
+                    <div className="flex-1 relative flex items-center justify-center mx-1 top-[2px]">
+                      <div className="absolute w-full h-[1px] bg-gray-500 border-t border-dashed border-gray-500"></div>
+                    </div>
+                  </>
+                )}
+                
+                <div className="flex flex-col items-center w-16 relative z-10 top-[-18px]">
+                  <div className="text-[10px] sm:text-[12px] font-bold text-white text-center leading-tight mb-1 truncate w-full px-1">
+                    {isExtendedOrigin ? firstLeg.boardingStation!.name : firstLeg.fromStation.name}
+                  </div>
+                  <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                </div>
+                
+                <div className="flex-1 relative flex items-center justify-center mx-1 top-[2px]">
+                  <div className="absolute w-full h-[1px] bg-[#3A506B]"></div>
+                  <div className="flex-1 flex justify-center z-10 top-[-20px] relative">
+                    <div className="bg-[var(--color-brand-navy-card)] px-1">
+                      <Train className="w-5 h-5 text-[var(--color-brand-blue)]" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center w-16 relative z-10 top-[-18px]">
+                  <div className="text-[10px] sm:text-[12px] font-bold text-white text-center leading-tight mb-1 truncate w-full px-1">
+                    {isExtendedDest ? lastLeg.droppingStation!.name : lastLeg.toStation.name}
+                  </div>
+                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                </div>
+
+                {isExtendedDest && (
+                  <>
+                    <div className="flex-1 relative flex items-center justify-center mx-1 top-[2px]">
+                      <div className="absolute w-full h-[1px] bg-gray-500 border-t border-dashed border-gray-500"></div>
+                    </div>
+
+                    <div className="flex flex-col items-center w-16 relative z-10 top-[-18px] opacity-50">
+                      <div className="text-[10px] sm:text-[12px] font-bold text-white text-center leading-tight mb-1 truncate w-full px-1">
+                        {lastLeg.toStation.name}
+                      </div>
+                      <div className="w-2 h-2 rounded-full border-2 border-gray-400 bg-transparent"></div>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Duration + expand button */}
+          <div className="flex items-center justify-between mt-[-10px]">
+            <div className="flex items-center gap-2 text-[15px] font-bold text-white">
+              <Clock className="w-4 h-4 text-gray-100" />
+              {fmtDuration(route.totalDurationMinutes)}
+            </div>
+
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="flex items-center gap-2 px-4 py-1.5 text-[13px] font-bold text-[var(--color-brand-blue)] border border-[var(--color-brand-blue)] rounded-lg hover:bg-[#3A506B]/50 transition-colors"
+            >
+              DETAILS {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
-
-
-
 
       </div>
 
