@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, RefreshCw, Train, MapPin, AlertCircle, Clock, Navigation } from 'lucide-react';
+import { X, RefreshCw, Train, MapPin, AlertCircle, Clock, ChevronDown, ChevronUp, Share2, Bell, Navigation } from 'lucide-react';
 
 interface LiveTrainModalProps {
   trainNumber: string;
@@ -13,6 +13,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
   const fetchLiveStatus = async () => {
     setLoading(true);
@@ -37,25 +38,34 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     fetchLiveStatus();
   }, [trainNumber]);
 
+  const toggleSection = (key: string) => {
+    setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const openGoogleMaps = (stationName: string, lat?: number, lng?: number) => {
+    let url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stationName + ' Railway Station')}`;
+    if (lat && lng) {
+      url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    }
+    window.open(url, '_blank');
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-[#121929] border border-[#2A3B54] rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="bg-[#121824] border border-[#233148] rounded-none sm:rounded-2xl w-full max-w-2xl h-full sm:h-[92vh] flex flex-col shadow-2xl overflow-hidden text-white">
         
-        {/* ── Top Header ────────────────────────────────────────── */}
-        <div className="bg-[#1B273D] p-4 border-b border-[#2A3B54] flex items-center justify-between">
+        {/* ── Top Header (WIMT App Style) ────────────────────────── */}
+        <div className="bg-[#1C2638] px-4 py-3 border-b border-[#2B3B56] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400">
-              <Train className="w-5 h-5" />
-            </div>
+            <button onClick={onClose} className="p-1.5 rounded-full hover:bg-white/10 text-gray-300">
+              <X className="w-5 h-5" />
+            </button>
             <div>
               <h2 className="text-base sm:text-lg font-black tracking-tight flex items-center gap-2">
                 <span>{trainNumber}</span>
-                <span className="text-gray-400 font-normal">|</span>
-                <span className="truncate max-w-[180px] sm:max-w-[300px]">{data?.train?.name || trainName}</span>
+                <span className="text-gray-400 font-normal">-</span>
+                <span className="truncate max-w-[170px] sm:max-w-[280px]">{data?.train?.name || trainName}</span>
               </h2>
-              <p className="text-xs text-gray-400 font-medium">
-                {data?.train?.source?.name ? `${data.train.source.name} ➔ ${data.train.destination.name}` : 'Live Running Status'}
-              </p>
             </div>
           </div>
 
@@ -63,174 +73,240 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
             <button
               onClick={fetchLiveStatus}
               disabled={loading}
-              className="p-2 rounded-lg bg-[#24334E] hover:bg-[#2F4264] text-gray-300 transition-colors disabled:opacity-50"
-              title="Refresh Status"
+              className="p-2 rounded-lg bg-[#273650] hover:bg-[#324567] text-gray-200 transition-colors disabled:opacity-50"
+              title="Refresh"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg bg-[#24334E] hover:bg-[#2F4264] text-gray-300 transition-colors"
-            >
-              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* ── Content Body ──────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* ── Arrival / Date Header / Departure ───────────────────── */}
+        <div className="bg-[#182131] px-4 py-2.5 border-b border-[#25344D] flex items-center justify-between text-xs font-bold text-gray-300">
+          <div className="w-20 text-left uppercase text-gray-400 tracking-wider">Arrival</div>
+          <div className="text-center font-extrabold text-blue-400">
+            {data?.startDate ? `Day 1 - ${new Date(data.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })}` : 'Live Schedule'}
+          </div>
+          <div className="w-20 text-right uppercase text-gray-400 tracking-wider">Departure</div>
+        </div>
+
+        {/* ── Main Scrollable Timeline ───────────────────────────── */}
+        <div className="flex-1 overflow-y-auto relative bg-[#0D121B] px-2 sm:px-4 py-3">
 
           {loading && (
-            <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-3">
+            <div className="flex flex-col items-center justify-center py-20 text-gray-400 gap-3">
               <RefreshCw className="w-8 h-8 animate-spin text-blue-400" />
-              <p className="text-sm font-bold">Fetching Live Running Status...</p>
+              <p className="text-sm font-bold">Loading Live Track...</p>
             </div>
           )}
 
           {error && !loading && (
-            <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-              <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 mb-3">
-                <AlertCircle className="w-6 h-6" />
-              </div>
-              <p className="text-sm font-bold text-red-400 mb-2">{error}</p>
-              <p className="text-xs text-gray-400 mb-4 max-w-sm">Live status is currently dynamic. Make sure train has departed or try refreshing.</p>
-              <button
-                onClick={fetchLiveStatus}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-xs transition-colors"
-              >
-                Try Again
+            <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+              <AlertCircle className="w-8 h-8 text-red-400 mb-2" />
+              <p className="text-sm font-bold text-red-400 mb-3">{error}</p>
+              <button onClick={fetchLiveStatus} className="px-4 py-2 bg-blue-600 text-xs font-bold rounded-lg text-white">
+                Retry
               </button>
             </div>
           )}
 
-          {!loading && !error && data && (
-            <>
-              {/* Status Header Banner */}
-              <div className="bg-[#1B2842] border border-[#2D3E5D] rounded-xl p-3.5 flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-bold text-gray-400 flex items-center gap-1.5 mb-1">
-                    <Navigation className="w-3.5 h-3.5 text-blue-400" />
-                    <span>CURRENT POSITION</span>
-                  </div>
-                  <div className="text-sm sm:text-base font-black text-white">
-                    {data.currentLocation?.stationName || data.currentLocation?.stationCode || 'En Route'}
-                  </div>
-                </div>
+          {!loading && !error && data?.route && (
+            <div className="relative pl-6 sm:pl-8">
+              
+              {/* Continuous Blue Vertical Track Line */}
+              <div className="absolute left-[29px] sm:left-[37px] top-4 bottom-4 w-[6px] bg-[#1F3354] rounded-full z-0"></div>
 
-                <div className="text-right">
-                  <span className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold ${
-                    data.delayMinutes === 0
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                      : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                  }`}>
-                    {data.delayMinutes === 0 ? 'ON TIME' : `${data.delayMinutes} Mins Late`}
-                  </span>
-                  {data.lastUpdatedAt && (
-                    <div className="text-[10px] text-gray-400 mt-1">
-                      Updated: {new Date(data.lastUpdatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {/* Grouping Stations by Main Halts & Intermediate Non-Halts */}
+              {(() => {
+                const route = data.route || [];
+                const currentSeq = data.currentLocation?.sequence || 1;
+                const elements = [];
+                let intermediateBuffer: any[] = [];
+                let bufferKey = '';
+
+                const renderIntermediateBox = (buffer: any[], key: string) => {
+                  const isExpanded = expandedSections[key];
+                  return (
+                    <div key={key} className="my-1.5 ml-4 sm:ml-6 relative z-10">
+                      {/* Collapse / Expand Toggle Bar */}
+                      <button
+                        onClick={() => toggleSection(key)}
+                        className="w-full bg-[#1A2538]/90 hover:bg-[#23324C] border border-[#2A3C5B] rounded-xl px-3 py-2 flex items-center justify-between text-xs text-gray-300 transition-all shadow-md"
+                      >
+                        <span className="font-bold flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+                          <span>{buffer.length} Intermediate non-halt station{buffer.length > 1 ? 's' : ''}</span>
+                        </span>
+                        {isExpanded ? <ChevronUp className="w-4 h-4 text-blue-400" /> : <ChevronDown className="w-4 h-4 text-blue-400" />}
+                      </button>
+
+                      {/* Collapsible List (Grey WIMT Style) */}
+                      {isExpanded && (
+                        <div className="mt-1 bg-[#151E2E] border border-[#23324A] rounded-xl divide-y divide-[#1D2A3F] overflow-hidden shadow-inner">
+                          {buffer.map((stn: any) => {
+                            const isLoc = currentSeq === stn.sequence;
+                            const formatTime = (t?: string) => t ? new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--';
+                            const schDep = formatTime(stn.scheduledDeparture);
+                            const schArr = formatTime(stn.scheduledArrival);
+                            
+                            return (
+                              <div key={stn.sequence} className={`flex items-center justify-between p-2.5 text-xs ${isLoc ? 'bg-blue-600/20' : ''}`}>
+                                <div className="w-16 text-left text-gray-400 font-bold">{schArr !== '--' ? schArr : schDep}</div>
+                                <div className="flex-1 px-3">
+                                  <div className="font-bold text-gray-200">{stn.stationName}</div>
+                                  <div className="text-[10px] text-gray-400">{stn.distance} km</div>
+                                </div>
+                                <div className="w-16 text-right text-gray-400 font-bold">{schDep}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
+                  );
+                };
 
-              {/* Timeline Table (WIMT Style) */}
-              <div className="bg-[#182338] border border-[#283854] rounded-xl p-3 sm:p-4">
-                
-                {/* Timeline Header */}
-                <div className="flex justify-between items-center pb-3 border-b border-[#283854] text-[11px] font-bold text-gray-400 uppercase tracking-wider px-2">
-                  <div className="w-16 sm:w-20 text-left">Arrival</div>
-                  <div className="flex-1 text-center px-4">Station</div>
-                  <div className="w-16 sm:w-20 text-right">Departure</div>
-                </div>
+                route.forEach((stn: any, i: number) => {
+                  const isMainHalt = stn.isHalt || i === 0 || i === route.length - 1;
+                  const isCurrentLoc = currentSeq === stn.sequence;
+                  
+                  if (!isMainHalt && !isCurrentLoc) {
+                    if (intermediateBuffer.length === 0) bufferKey = `group-${stn.sequence}`;
+                    intermediateBuffer.push(stn);
+                  } else {
+                    if (intermediateBuffer.length > 0) {
+                      elements.push(renderIntermediateBox(intermediateBuffer, bufferKey));
+                      intermediateBuffer = [];
+                    }
 
-                {/* Stations List */}
-                <div className="divide-y divide-[#23314B] mt-1">
-                  {data.route?.map((stn: any, idx: number) => {
-                    const isCurrent = data.currentLocation?.stationCode === stn.stationCode || data.currentLocation?.sequence === stn.sequence;
-                    const isPassed = stn.sequence < (data.currentLocation?.sequence || 1);
-                    const formatTime = (timeStr?: string) => {
-                      if (!timeStr) return '--';
-                      const dateObj = new Date(timeStr);
-                      if (isNaN(dateObj.getTime())) return '--';
-                      return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const formatTime = (t?: string) => {
+                      if (!t) return '--';
+                      const dateObj = new Date(t);
+                      return isNaN(dateObj.getTime()) ? '--' : dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                     };
 
-                    const schDep = formatTime(stn.scheduledDeparture);
-                    const actDep = formatTime(stn.actualDeparture);
                     const schArr = formatTime(stn.scheduledArrival);
                     const actArr = formatTime(stn.actualArrival);
+                    const schDep = formatTime(stn.scheduledDeparture);
+                    const actDep = formatTime(stn.actualDeparture);
 
-                    const isDelayed = stn.delayDeparture > 0 || stn.delayArrival > 0;
+                    const isDelayedArr = stn.delayArrival > 0;
+                    const isDelayedDep = stn.delayDeparture > 0;
 
-                    return (
-                      <div
-                        key={stn.stationCode || idx}
-                        className={`flex items-center justify-between py-3 px-2 rounded-lg transition-colors ${
-                          isCurrent ? 'bg-blue-600/15 border border-blue-500/30' : 'hover:bg-[#1F2C45]'
-                        }`}
-                      >
-                        {/* Arrival Column */}
-                        <div className="w-16 sm:w-20 text-left flex flex-col">
-                          <span className="text-xs font-bold text-gray-300">{schArr !== '--' ? schArr : schDep}</span>
-                          {actArr !== '--' && actArr !== schArr && (
-                            <span className={`text-[10px] font-bold ${isDelayed ? 'text-red-400' : 'text-emerald-400'}`}>
-                              {actArr}
-                            </span>
-                          )}
-                        </div>
+                    elements.push(
+                      <div key={stn.sequence} className="relative my-3 z-10">
+                        
+                        {/* WIMT Station Row */}
+                        <div className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                          isCurrentLoc
+                            ? 'bg-[#1D2D48] border-blue-500/80 shadow-lg ring-2 ring-blue-500/30'
+                            : 'bg-[#151D2C] border-[#223048] hover:bg-[#1A2436]'
+                        }`}>
 
-                        {/* Middle: Station Name + Vertical Line Track */}
-                        <div className="flex-1 flex items-center gap-3 px-2">
-                          <div className="relative flex flex-col items-center">
-                            <div className={`w-3 h-3 rounded-full flex items-center justify-center ${
-                              isCurrent
-                                ? 'bg-blue-500 ring-4 ring-blue-500/30'
-                                : isPassed
-                                  ? 'bg-blue-400'
-                                  : 'bg-gray-600'
-                            }`}>
-                              {isCurrent && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
-                            </div>
+                          {/* Left Arrival */}
+                          <div className="w-16 sm:w-20 text-left flex flex-col justify-center">
+                            <span className="text-xs sm:text-sm font-bold text-white">{schArr !== '--' ? schArr : schDep}</span>
+                            {actArr !== '--' && actArr !== schArr && (
+                              <span className={`text-[10px] font-bold ${isDelayedArr ? 'text-red-400' : 'text-emerald-400'}`}>
+                                {actArr}
+                              </span>
+                            )}
                           </div>
 
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className={`text-xs sm:text-sm font-black truncate ${isCurrent ? 'text-blue-300' : 'text-white'}`}>
-                                {stn.stationName}
-                              </span>
-                              <span className="text-[10px] font-bold text-gray-400 uppercase bg-[#22304A] px-1.5 py-0.5 rounded">
-                                {stn.stationCode}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-3 text-[10px] text-gray-400 mt-0.5">
-                              <span>{stn.distance} km</span>
-                              {stn.platform && stn.platform !== '--' && (
-                                <span className="text-gray-300 bg-[#283854] px-1.5 py-0.2 rounded border border-[#364A6E]">
-                                  PF {stn.platform}
-                                </span>
+                          {/* Middle: Station Node dot & Name */}
+                          <div className="flex-1 flex items-center gap-3 px-2">
+                            
+                            {/* Track Circle Node or Train Badge */}
+                            <div className="relative flex items-center justify-center -ml-6 sm:-ml-8 z-20">
+                              {isCurrentLoc ? (
+                                <div className="w-8 h-8 rounded-full bg-blue-500 border-2 border-white shadow-xl flex items-center justify-center animate-bounce">
+                                  <Train className="w-4 h-4 text-white" />
+                                </div>
+                              ) : (
+                                <div className="w-4 h-4 rounded-full bg-[#1F3354] border-2 border-blue-400 flex items-center justify-center">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
+                                </div>
                               )}
                             </div>
-                          </div>
-                        </div>
 
-                        {/* Departure Column */}
-                        <div className="w-16 sm:w-20 text-right flex flex-col">
-                          <span className="text-xs font-bold text-gray-300">{schDep}</span>
-                          {actDep !== '--' && actDep !== schDep && (
-                            <span className={`text-[10px] font-bold ${isDelayed ? 'text-red-400' : 'text-emerald-400'}`}>
-                              {actDep}
-                            </span>
-                          )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`text-sm sm:text-base font-black truncate ${isCurrentLoc ? 'text-blue-300' : 'text-white'}`}>
+                                  {stn.stationName}
+                                </span>
+                              </div>
+                              
+                              <div className="flex items-center gap-2.5 text-[11px] text-gray-400 mt-1 flex-wrap">
+                                <span>{stn.distance} km</span>
+                                {stn.platform && stn.platform !== '--' && (
+                                  <span className="text-gray-200 bg-[#22324D] px-2 py-0.5 rounded border border-[#304468] font-bold">
+                                    Platform {stn.platform}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Right Departure */}
+                          <div className="w-16 sm:w-20 text-right flex flex-col justify-center">
+                            <span className="text-xs sm:text-sm font-bold text-white">{schDep}</span>
+                            {actDep !== '--' && actDep !== schDep && (
+                              <span className={`text-[10px] font-bold ${isDelayedDep ? 'text-red-400' : 'text-emerald-400'}`}>
+                                {actDep}
+                              </span>
+                            )}
+                          </div>
+
                         </div>
                       </div>
                     );
-                  })}
-                </div>
-              </div>
-            </>
+                  }
+                });
+
+                if (intermediateBuffer.length > 0) {
+                  elements.push(renderIntermediateBox(intermediateBuffer, bufferKey));
+                }
+
+                return elements;
+              })()}
+
+            </div>
           )}
 
         </div>
+
+        {/* ── Bottom Floating Bar (Google Maps Pin + Live Status) ───── */}
+        {data && (
+          <div className="bg-[#182233] border-t border-[#273650] p-3 flex items-center justify-between shadow-2xl">
+            <div className="flex items-center gap-3">
+              {/* Google Maps Pin Floating Button (Option A) */}
+              <button
+                onClick={() => openGoogleMaps(data.currentLocation?.stationName || data.train?.name || 'Railway Station')}
+                className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 hover:scale-105 active:scale-95 text-white flex items-center justify-center shadow-lg transition-all"
+                title="View Station Map Directions"
+              >
+                <MapPin className="w-5 h-5 text-white" />
+              </button>
+
+              <div>
+                <div className="text-xs sm:text-sm font-black text-red-400">
+                  {data.delayMinutes > 0 ? `${data.delayMinutes} km/min delay` : `${data.currentLocation?.stationName || 'At Station'}`}
+                </div>
+                <div className="text-[10px] text-gray-400 font-medium">
+                  Updated just now
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={fetchLiveStatus}
+              className="w-10 h-10 rounded-full bg-[#253552] hover:bg-[#304468] text-blue-400 flex items-center justify-center shadow-md transition-colors"
+            >
+              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+        )}
+
       </div>
     </div>
   );
