@@ -68,16 +68,9 @@ export default function SearchForm({
 
         {/* DATE */}
         <div 
-          className="md:w-52 bg-[var(--color-brand-navy)] border border-[#3A506B] rounded-xl p-3 hover:border-blue-400 transition-colors cursor-pointer relative"
-          onClick={() => {
-            try {
-              (document.getElementById('journey-date') as any)?.showPicker();
-            } catch (e) {
-              document.getElementById('journey-date')?.focus();
-            }
-          }}
+          className="md:w-52 bg-[var(--color-brand-navy)] border border-[#3A506B] rounded-xl p-3 hover:border-blue-400 transition-colors cursor-pointer relative group"
         >
-          <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1 cursor-pointer">DEPARTURE</label>
+          <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1 cursor-pointer pointer-events-none">DEPARTURE</label>
           <div className="text-sm md:text-base font-bold text-white truncate pointer-events-none">
             {(() => {
               if (!date) return 'Select Date';
@@ -95,8 +88,7 @@ export default function SearchForm({
             min={today}
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-20 block [color-scheme:dark]"
           />
         </div>
 
