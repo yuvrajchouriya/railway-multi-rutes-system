@@ -85,9 +85,6 @@ export default function Home() {
               How2<span className="text-[var(--color-brand-blue)]">Go</span>
             </span>
           </div>
-          <button className="text-sm font-medium text-[var(--color-brand-blue)] px-4 py-1.5 rounded-full border border-[#3A506B] hover:bg-[#3A506B]/50 transition-colors">
-            Login
-          </button>
         </div>
       </nav>
 
