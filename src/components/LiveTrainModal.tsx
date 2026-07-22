@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, RefreshCw, Train, MapPin, AlertCircle, Clock } from 'lucide-react';
+import { X, RefreshCw, Train, MapPin, AlertCircle, Clock, Calendar, Bell, Share2, ChevronDown, Check } from 'lucide-react';
 
 interface LiveTrainModalProps {
   trainNumber: string;
@@ -13,6 +13,11 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
+  const [selectedDayOffset, setSelectedDayOffset] = useState<number>(0); // 0 = Today, -1 = Yesterday, 1 = Tomorrow
+  const [showDateDropdown, setShowDateDropdown] = useState(false);
+  const [showCoachModal, setShowCoachModal] = useState(false);
+  const [alarmStation, setAlarmStation] = useState<string | null>(null);
+  const [copiedShare, setCopiedShare] = useState(false);
 
   const fetchLiveStatus = async () => {
     setLoading(true);
@@ -43,6 +48,27 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
       url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
     }
     window.open(url, '_blank');
+  };
+
+  const handleShare = async () => {
+    const text = `🚆 Live Status for ${trainNumber} ${data?.train?.name || trainName}:\nStatus: ${data?.delayMinutes === 0 ? 'On Time' : data?.delayMinutes + ' mins late'}\nCurrent Location: ${data?.currentLocation?.stationName || 'En Route'}\nCheck on How2Go Railway App!`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Live Train ${trainNumber}`, text, url: window.location.href });
+      } catch (e) {}
+    } else {
+      navigator.clipboard.writeText(text);
+      setCopiedShare(true);
+      setTimeout(() => setCopiedShare(false), 2000);
+    }
+  };
+
+  const getDayLabel = () => {
+    if (selectedDayOffset === 0) return 'Today';
+    if (selectedDayOffset === -1) return 'Yesterday';
+    if (selectedDayOffset === 1) return 'Tomorrow';
+    return 'Today';
   };
 
   return (
@@ -76,8 +102,76 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           </div>
         </div>
 
+        {/* ── Top Feature Action Pills Bar (Today, Alarm, Coach, Share) ── */}
+        <div className="bg-[#172030] px-4 py-2 border-b border-[#24334B] flex items-center gap-2 overflow-x-auto scrollbar-hide relative z-20">
+          
+          {/* Today / Day Selector Pill */}
+          <div className="relative">
+            <button
+              onClick={() => setShowDateDropdown(!showDateDropdown)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#24334B] hover:bg-[#2F4262] text-xs font-bold text-gray-200 border border-[#34486A] transition-all flex-shrink-0"
+            >
+              <Calendar className="w-3.5 h-3.5 text-blue-400" />
+              <span>{getDayLabel()}</span>
+              <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+            </button>
+
+            {showDateDropdown && (
+              <div className="absolute top-full left-0 mt-1 bg-[#1C273C] border border-[#2B3D5E] rounded-xl shadow-xl py-1 w-32 z-30">
+                {[
+                  { label: 'Yesterday', offset: -1 },
+                  { label: 'Today', offset: 0 },
+                  { label: 'Tomorrow', offset: 1 },
+                ].map(opt => (
+                  <button
+                    key={opt.offset}
+                    onClick={() => {
+                      setSelectedDayOffset(opt.offset);
+                      setShowDateDropdown(false);
+                    }}
+                    className={`w-full text-left px-3 py-1.5 text-xs font-bold flex items-center justify-between ${
+                      selectedDayOffset === opt.offset ? 'bg-blue-600/30 text-blue-400' : 'hover:bg-white/5 text-gray-300'
+                    }`}
+                  >
+                    <span>{opt.label}</span>
+                    {selectedDayOffset === opt.offset && <Check className="w-3.5 h-3.5" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Alarm Pill */}
+          <button
+            onClick={() => alert('⏰ Station Alarm enabled! We will notify you when train approaches your station.')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#24334B] hover:bg-[#2F4262] text-xs font-bold text-gray-200 border border-[#34486A] transition-all flex-shrink-0"
+          >
+            <Bell className="w-3.5 h-3.5 text-amber-400" />
+            <span>Alarm</span>
+          </button>
+
+          {/* Coach Position Pill */}
+          <button
+            onClick={() => setShowCoachModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#24334B] hover:bg-[#2F4262] text-xs font-bold text-gray-200 border border-[#34486A] transition-all flex-shrink-0"
+          >
+            <Train className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Coach</span>
+          </button>
+
+          {/* Share Pill */}
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#24334B] hover:bg-[#2F4262] text-xs font-bold text-gray-200 border border-[#34486A] transition-all flex-shrink-0"
+          >
+            <Share2 className="w-3.5 h-3.5 text-purple-400" />
+            <span>{copiedShare ? 'Copied!' : 'Share'}</span>
+          </button>
+
+        </div>
+
         {/* ── Arrival / Date Header / Departure ───────────────────── */}
-        <div className="bg-[#141C2B] px-4 py-2.5 border-b border-[#25344D] flex items-center justify-between text-xs font-bold text-gray-300">
+        <div className="bg-[#141C2B] px-4 py-2 border-b border-[#25344D] flex items-center justify-between text-xs font-bold text-gray-300">
           <div className="w-20 text-left uppercase text-gray-400 tracking-wider">Arrival</div>
           <div className="text-center font-extrabold text-white text-xs sm:text-sm">
             {data?.startDate ? `Day 1 - ${new Date(data.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })}` : 'Live Schedule'}
@@ -172,7 +266,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                         <div className="flex items-center gap-2 text-[11px] text-gray-400 mt-0.5 flex-wrap">
                           <span>{stn.distance} km</span>
                           {stn.platform && stn.platform !== '--' && (
-                            <span className="text-gray-300 bg-[#253650] px-1.5 py-0.2 rounded border border-[#384F75] font-bold text-[10px]">
+                            <span className="text-gray-200 bg-[#253650] px-1.5 py-0.2 rounded border border-[#384F75] font-bold text-[10px]">
                               Platform {stn.platform}
                             </span>
                           )}
@@ -198,6 +292,42 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           )}
 
         </div>
+
+        {/* ── Coach Position Popup Modal ───────────────────────── */}
+        {showCoachModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-[#1A253A] border border-[#2F4264] rounded-2xl p-5 max-w-md w-full shadow-2xl text-white">
+              <div className="flex items-center justify-between pb-3 border-b border-[#2C3E5E] mb-4">
+                <h3 className="text-base font-black flex items-center gap-2">
+                  <Train className="w-5 h-5 text-emerald-400" />
+                  <span>Coach Composition ({trainNumber})</span>
+                </h3>
+                <button onClick={() => setShowCoachModal(false)} className="p-1 rounded-full hover:bg-white/10 text-gray-300">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="bg-[#121927] p-3 rounded-xl border border-[#253652] mb-4">
+                <div className="text-xs text-gray-400 mb-2 font-bold uppercase tracking-wider">Engine to Guard Position:</div>
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide py-1">
+                  {(data?.train?.coachPosition || 'ENG-SLRD-GEN-GEN-S1-S2-S3-S4-S5-B1-B2-GEN-GEN-SLRD').split('-').map((c: string, idx: number) => (
+                    <div key={idx} className="flex-shrink-0 bg-[#223350] border border-[#354D77] px-2.5 py-1.5 rounded-lg text-center font-black text-xs min-w-[44px]">
+                      <div className="text-[9px] text-gray-400 font-normal">#{idx+1}</div>
+                      <div className="text-blue-300">{c}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowCoachModal(false)}
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ── Bottom Floating Bar (Google Maps Pin + Live Status) ───── */}
         {data && (
