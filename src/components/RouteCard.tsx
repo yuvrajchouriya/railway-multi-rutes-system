@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react';
 import { Route, TrainLeg, DatedClassAvailability } from '@/types/railway';
 import AvailabilityBox from './AvailabilityBox';
 import AvailabilityModal from './AvailabilityModal';
+import LiveTrainModal from './LiveTrainModal';
 import {
   ChevronDown, ChevronUp, Clock, Utensils,
   Train, ArrowRight, ExternalLink, Star,
-  Check, X, RefreshCw
+  Check, X, RefreshCw, Navigation
 } from 'lucide-react';
 
 interface Props { 
@@ -79,6 +80,7 @@ function NextDaysSlider({ entries, classType }: {
 function LegCard({ leg, showDivider = false, liveClasses }: { leg: TrainLeg; showDivider?: boolean; liveClasses?: any[] }) {
   const [expandedClass, setExpandedClass] = useState<string | null>(null);
   const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
+  const [showLiveModal, setShowLiveModal] = useState(false);
 
   const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -260,29 +262,43 @@ function LegCard({ leg, showDivider = false, liveClasses }: { leg: TrainLeg; sho
       )}
 
       {/* Footer action */}
-      <div className="flex items-center justify-between pt-3 border-t border-[#3A506B]">
-        <div className="text-xs text-gray-400">
-          {liveClasses && liveClasses.length > 0 ? "Select a class to book" : "Fetching classes..."}
-        </div>
-        <div className="flex items-center gap-4">
-           <button
-             disabled
-             className="flex items-center gap-2 px-6 py-2.5 bg-gray-600 text-gray-300 text-[15px] font-extrabold rounded-lg cursor-not-allowed shadow-md"
-           >
-             Book Now <ArrowRight className="w-4 h-4" />
-           </button>
+      <div className="pt-3 border-t border-[#3A506B]">
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => setShowLiveModal(true)}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 bg-[#203254] hover:bg-[#2A426E] text-blue-400 border border-blue-500/40 text-xs sm:text-sm font-extrabold rounded-xl transition-all shadow-md active:scale-95"
+          >
+            <Navigation className="w-4 h-4 text-blue-400" />
+            <span className="truncate">Live Train Status</span>
+          </button>
+
+          <a
+            href={(() => {
+              // Format date DD-MM-YYYY for confirmtkt redirect
+              let dStr = leg.journeyDate;
+              if (dStr.includes('-') && dStr.split('-')[0].length === 4) {
+                const p = dStr.split('-');
+                dStr = `${p[2]}-${p[1]}-${p[0]}`;
+              }
+              return `https://www.confirmtkt.com/rsuite/train-availability/${leg.fromStation.code}/${leg.toStation.code}/${dStr}`;
+            })()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-95 text-white text-xs sm:text-sm font-extrabold rounded-xl transition-all shadow-md active:scale-95"
+          >
+            <span>Book Now</span>
+            <ArrowRight className="w-4 h-4" />
+          </a>
         </div>
       </div>
 
-      {/* Availability modal temporarily disabled per user request
-      {showAvailabilityModal && (
-        <AvailabilityModal 
-          leg={leg} 
-          liveClasses={liveClasses}
-          onClose={() => setShowAvailabilityModal(false)} 
+      {showLiveModal && (
+        <LiveTrainModal
+          trainNumber={leg.trainNumber}
+          trainName={leg.trainName}
+          onClose={() => setShowLiveModal(false)}
         />
       )}
-      */}
     </div>
   );
 }

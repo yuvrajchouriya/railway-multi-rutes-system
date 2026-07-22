@@ -68,7 +68,7 @@ export default function SearchForm({
 
         {/* DATE */}
         <div 
-          className="md:w-48 bg-[var(--color-brand-navy)] border border-[#3A506B] rounded-xl p-3 hover:border-blue-400 transition-colors cursor-pointer"
+          className="md:w-52 bg-[var(--color-brand-navy)] border border-[#3A506B] rounded-xl p-3 hover:border-blue-400 transition-colors cursor-pointer relative"
           onClick={() => {
             try {
               (document.getElementById('journey-date') as any)?.showPicker();
@@ -78,6 +78,17 @@ export default function SearchForm({
           }}
         >
           <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1 cursor-pointer">DEPARTURE</label>
+          <div className="text-sm md:text-base font-bold text-white truncate pointer-events-none">
+            {(() => {
+              if (!date) return 'Select Date';
+              const d = new Date(date + 'T00:00:00');
+              const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+              const monthName = d.toLocaleDateString('en-US', { month: 'short' });
+              const dayNum = d.getDate();
+              const year = d.getFullYear();
+              return `${dayName}, ${dayNum} ${monthName} ${year}`;
+            })()}
+          </div>
           <input
             id="journey-date"
             type="date"
@@ -85,7 +96,7 @@ export default function SearchForm({
             value={date}
             onChange={(e) => setDate(e.target.value)}
             onClick={(e) => e.stopPropagation()}
-            className="w-full text-base font-bold text-white bg-transparent outline-none cursor-pointer [color-scheme:dark]"
+            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
           />
         </div>
 
