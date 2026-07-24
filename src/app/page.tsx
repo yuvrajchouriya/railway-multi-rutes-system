@@ -79,10 +79,10 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded bg-gradient-to-br from-[var(--color-brand-blue)] to-purple-600 flex items-center justify-center text-white font-black shadow-md">
-              H2
+              RS
             </div>
             <span className="font-black text-xl tracking-tight text-white">
-              How2<span className="text-[var(--color-brand-blue)]">Go</span>
+              Rail<span className="text-[var(--color-brand-blue)]">Sathi</span>
             </span>
           </div>
         </div>
