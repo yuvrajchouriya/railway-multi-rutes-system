@@ -18,9 +18,9 @@ const JUNCTIONS = [
   'BTI', 'SLN', 'AY', 'BE', 'MB', 'BJU', 'GHY'
 ];
 
-// Layover rules: min 30 mins, max 12 hours (720 mins)
+// Realistic Layover rules: min 30 mins (platform change), max 6 hours (360 mins)
 const MIN_LAYOVER_MINUTES = 30;
-const MAX_LAYOVER_MINUTES = 720;
+const MAX_LAYOVER_MINUTES = 360;
 
 // Metropolitan City Groups mapping
 const CITY_GROUPS: Record<string, string[]> = {
@@ -82,7 +82,6 @@ export async function findDirectRoutes(
     }
   }
 
-  // Duplicate routes for hidden quota (if train origin/dest differ from passenger search)
   const hiddenQuotaRoutes: Route[] = [];
   deduplicatedDirectRoutes.forEach((route, idx) => {
     const leg = route.legs[0];
@@ -163,6 +162,18 @@ const parseT = (t: string) => {
   return parseInt(parts[0] || '0') * 60 + parseInt(parts[1] || '0');
 };
 
+const getMaxAllowedDurationMinutes = (fastestMins: number | null) => {
+  if (fastestMins === null) return Infinity;
+  const hours = fastestMins / 60;
+  if (hours < 5) return fastestMins + (2 * 60);
+  if (hours < 10) return fastestMins + (3 * 60);
+  if (hours < 15) return fastestMins + (5 * 60);
+  if (hours < 20) return fastestMins + (7 * 60);
+  if (hours < 30) return fastestMins + (10 * 60);
+  if (hours < 40) return fastestMins + (13 * 60);
+  return fastestMins + (15 * 60);
+};
+
 export async function findConnectingRoutes(
   from: string,
   to: string,
@@ -176,9 +187,10 @@ export async function findConnectingRoutes(
   const primaryTo = toStations[0];
   const connectingRoutes: Route[] = [];
 
-  pushLog(`🔄 Multi-route search: ${from} ➔ ${to} on ${date}`);
+  const maxAllowedDuration = getMaxAllowedDurationMinutes(fastestDirectDurationMinutes);
 
-  // Rank candidate junctions by distance efficiency
+  pushLog(`🔄 Multi-route search: ${from} ➔ ${to} on ${date} (Max layover: 6h)`);
+
   const junctionScores = JUNCTIONS
     .filter(j => j !== primaryFrom && j !== primaryTo)
     .map(j => {
@@ -189,12 +201,10 @@ export async function findConnectingRoutes(
     .filter(j => j.valid)
     .sort((a, b) => a.detourDist - b.detourDist);
 
-  // Take top candidate junctions (up to 12)
   const relevantJunctions = junctionScores.length > 0 
     ? junctionScores.slice(0, 12).map(j => j.junction)
     : JUNCTIONS.filter(j => j !== primaryFrom && j !== primaryTo).slice(0, 12);
 
-  // Parallel fetch for Leg 1 across candidate junctions
   const leg1Promises = relevantJunctions.map(j => searchLiveTrainsConfirmTkt(primaryFrom, j, date));
   const leg1Results = await Promise.all(leg1Promises);
 
@@ -205,7 +215,6 @@ export async function findConnectingRoutes(
     const leg1Trains = leg1Results[idx];
     if (!leg1Trains || leg1Trains.length === 0) continue;
 
-    // Search Leg 2 from junction to destination
     const leg2Trains = await searchLiveTrainsConfirmTkt(junction, primaryTo, date);
     if (!leg2Trains || leg2Trains.length === 0) continue;
 
@@ -219,7 +228,7 @@ export async function findConnectingRoutes(
       const leg1ArrDayOffset = leg1.arrivalDayOffset || (l1Arr < l1Dep ? 1 : 0);
 
       for (const leg2 of leg2Trains) {
-        if (leg1.trainNumber === leg2.trainNumber) continue; // Same train
+        if (leg1.trainNumber === leg2.trainNumber) continue;
 
         const l2Dep = parseT(leg2.departureTime);
         let layover = l2Dep - l1Arr;
@@ -233,6 +242,12 @@ export async function findConnectingRoutes(
         if (layover >= MIN_LAYOVER_MINUTES && layover <= MAX_LAYOVER_MINUTES) {
           const routeId = `conn-${junction}-${leg1.trainNumber}-${leg2.trainNumber}`;
           if (seenRouteIds.has(routeId)) continue;
+
+          const totalDuration = leg1.durationMinutes + layover + leg2.durationMinutes;
+
+          // Filter out overly long routes if direct trains are available
+          if (totalDuration > maxAllowedDuration) continue;
+
           seenRouteIds.add(routeId);
 
           const l2Arr = parseT(leg2.arrivalTime);
@@ -243,8 +258,6 @@ export async function findConnectingRoutes(
             departureDayOffset: leg2DepartureDayOffset,
             arrivalDayOffset: leg2DepartureDayOffset + leg2DurationDays
           };
-
-          const totalDuration = leg1.durationMinutes + layover + leg2.durationMinutes;
 
           const route: Route = {
             id: routeId,
@@ -267,7 +280,7 @@ export async function findConnectingRoutes(
   }
 
   connectingRoutes.sort((a, b) => a.totalDurationMinutes - b.totalDurationMinutes);
-  pushLog(`✅ Found ${connectingRoutes.length} connecting routes in total`);
+  pushLog(`✅ Found ${connectingRoutes.length} practical connecting routes (layover ≤ 6h)`);
   return connectingRoutes;
 }
 
