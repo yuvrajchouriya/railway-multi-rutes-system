@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
         .eq('type', 'connecting')
         .single();
         
-      if (!cacheErr && cacheData && cacheData.routes_json) {
+      if (!cacheErr && cacheData && Array.isArray(cacheData.routes_json) && cacheData.routes_json.length > 0) {
          // Cache HIT: Stream instantly from DB
          const routesArray = cacheData.routes_json as any[];
          const stream = new ReadableStream({
