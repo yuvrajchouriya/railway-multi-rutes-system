@@ -193,9 +193,9 @@ export async function findConnectingRoutes(
   const tripDistance = calculateDistanceKm(primaryFrom, primaryTo);
   const hasDirectTrains = fastestDirectDurationMinutes !== null;
 
-  // 🔴 Rule: Skip connecting routes if direct trains exist AND trip distance is under 300 km
+  // Rule: Skip connecting routes if direct trains exist AND trip distance is under 200 km
   if (hasDirectTrains && tripDistance !== Infinity && tripDistance < LONG_DISTANCE_KM) {
-    pushLog(`⏩ Short trip (< 300km) with direct trains found, skipping connecting routes`);
+    pushLog(`⏩ Short trip (< 200km) with direct trains found, skipping connecting routes`);
     return connectingRoutes;
   }
 
@@ -217,18 +217,24 @@ export async function findConnectingRoutes(
     ? junctionScores.slice(0, 12).map(j => j.junction)
     : JUNCTIONS.filter(j => j !== primaryFrom && j !== primaryTo).slice(0, 12);
 
+  // Parallel Fetch Leg 1 across candidate junctions
   const leg1Promises = relevantJunctions.map(j => searchLiveTrainsConfirmTkt(primaryFrom, j, date));
   const leg1Results = await Promise.all(leg1Promises);
+
+  // Parallel Fetch Leg 2 across all active junctions simultaneously
+  const leg2Promises = relevantJunctions.map((j, idx) => {
+    if (!leg1Results[idx] || leg1Results[idx].length === 0) return Promise.resolve([]);
+    return searchLiveTrainsConfirmTkt(j, primaryTo, date);
+  });
+  const leg2Results = await Promise.all(leg2Promises);
 
   const seenRouteIds = new Set<string>();
 
   for (let idx = 0; idx < relevantJunctions.length; idx++) {
     const junction = relevantJunctions[idx];
     const leg1Trains = leg1Results[idx];
-    if (!leg1Trains || leg1Trains.length === 0) continue;
-
-    const leg2Trains = await searchLiveTrainsConfirmTkt(junction, primaryTo, date);
-    if (!leg2Trains || leg2Trains.length === 0) continue;
+    const leg2Trains = leg2Results[idx];
+    if (!leg1Trains || leg1Trains.length === 0 || !leg2Trains || leg2Trains.length === 0) continue;
 
     let foundForJunction = 0;
 
