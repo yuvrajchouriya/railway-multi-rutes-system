@@ -9,22 +9,23 @@ import { calculateDistanceKm } from './geo';
 
 // Comprehensive pool of major railway junctions across India
 const JUNCTIONS = [
-  'BPL', 'ET', 'NDLS', 'CNB', 'DDU', 'LKO', 'VGLJ', 'NGP', 'PRYJ', 'BSL',
-  'JP', 'HWH', 'KGP', 'BBS', 'VSKP', 'RU', 'ERS', 'ADI', 'ST', 'BRC',
-  'RTM', 'KOTA', 'AGC', 'MTJ', 'UMB', 'LDH', 'ASR', 'JAT', 'JBP', 'KTE',
-  'STA', 'BINA', 'GWL', 'CWA', 'NIR', 'G', 'R', 'BSP', 'UJN', 'INDB',
-  'MMR', 'PUNE', 'GKP', 'PNBE', 'GAYA', 'TATA', 'RNC', 'SUR', 'MRJ', 'MAO',
-  'MYS', 'SBC', 'TVC', 'CLT', 'DURG', 'ROU', 'REWA', 'BTI', 'SLN', 'AY',
-  'BE', 'MB', 'BJU', 'GHY', 'BZA', 'MAS', 'SC'
+  'NGP', 'ET', 'BZA', 'MAS', 'SC', 'NDLS', 'HWH', 'BSL', 'JP', 'LKO', 
+  'CNB', 'BPL', 'DDU', 'PRYJ', 'KGP', 'BBS', 'VSKP', 'RU', 'ERS', 'ADI',
+  'ST', 'BRC', 'RTM', 'KOTA', 'AGC', 'MTJ', 'UMB', 'LDH', 'ASR', 'JAT',
+  'JBP', 'KTE', 'STA', 'BINA', 'VGLJ', 'GWL', 'CWA', 'NIR', 'G', 'R',
+  'BSP', 'UJN', 'INDB', 'MMR', 'PUNE', 'GKP', 'PNBE', 'GAYA', 'TATA', 'RNC',
+  'SUR', 'MRJ', 'MAO', 'MYS', 'SBC', 'TVC', 'CLT', 'DURG', 'ROU', 'REWA',
+  'BTI', 'SLN', 'AY', 'BE', 'MB', 'BJU', 'GHY'
 ];
 
 // Fallback top central hubs when distance calculation is unavailable
 const DEFAULT_FALLBACK_JUNCTIONS = [
-  'BPL', 'ET', 'NDLS', 'CNB', 'DDU', 'LKO', 'VGLJ', 'NGP', 'PRYJ', 'BSL', 'JP', 'HWH'
+  'NGP', 'ET', 'BPL', 'NDLS', 'CNB', 'DDU', 'LKO', 'VGLJ', 'PRYJ', 'BSL', 'JP', 'HWH'
 ];
 
-// Realistic Layover rules: min 30 mins (platform change)
+// Realistic Layover rules: min 30 mins (platform change), max 6 hours (360 mins)
 const MIN_LAYOVER_MINUTES = 30;
+const MAX_LAYOVER_MINUTES = 360;
 
 // Threshold for skipping connecting routes if direct trains already exist
 const LONG_DISTANCE_KM = 200;
@@ -172,13 +173,13 @@ const parseT = (t: string) => {
 const getMaxAllowedDurationMinutes = (fastestMins: number | null) => {
   if (fastestMins === null) return Infinity;
   const hours = fastestMins / 60;
-  if (hours < 5) return fastestMins + (3 * 60);
-  if (hours < 10) return fastestMins + (5 * 60);
-  if (hours < 15) return fastestMins + (7 * 60);
-  if (hours < 20) return fastestMins + (10 * 60);
-  if (hours < 30) return fastestMins + (14 * 60);
-  if (hours < 40) return fastestMins + (18 * 60);
-  return fastestMins + (20 * 60);
+  if (hours < 5) return fastestMins + (2 * 60);
+  if (hours < 10) return fastestMins + (3 * 60);
+  if (hours < 15) return fastestMins + (5 * 60);
+  if (hours < 20) return fastestMins + (7 * 60);
+  if (hours < 30) return fastestMins + (10 * 60);
+  if (hours < 40) return fastestMins + (13 * 60);
+  return fastestMins + (15 * 60);
 };
 
 export async function findConnectingRoutes(
@@ -203,11 +204,9 @@ export async function findConnectingRoutes(
     return connectingRoutes;
   }
 
-  // Dynamic Layover Cap: 10h (600 mins) for long trips / unknown distance, 6h (360 mins) for short trips
-  const maxLayoverMinutes = (tripDistance === Infinity || tripDistance > 500) ? 600 : 360;
   const maxAllowedDuration = getMaxAllowedDurationMinutes(fastestDirectDurationMinutes);
 
-  pushLog(`🔄 Multi-route search: ${from} ➔ ${to} on ${date} (Max layover: ${maxLayoverMinutes / 60}h)`);
+  pushLog(`🔄 Multi-route search: ${from} ➔ ${to} on ${date} (Max layover: 6h)`);
 
   const junctionScores = JUNCTIONS
     .filter(j => j !== primaryFrom && j !== primaryTo)
@@ -263,7 +262,7 @@ export async function findConnectingRoutes(
           leg2DepartureDayOffset += 1;
         }
 
-        if (layover >= MIN_LAYOVER_MINUTES && layover <= maxLayoverMinutes) {
+        if (layover >= MIN_LAYOVER_MINUTES && layover <= MAX_LAYOVER_MINUTES) {
           const routeId = `conn-${junction}-${leg1.trainNumber}-${leg2.trainNumber}`;
           if (seenRouteIds.has(routeId)) continue;
 
@@ -304,7 +303,7 @@ export async function findConnectingRoutes(
   }
 
   connectingRoutes.sort((a, b) => a.totalDurationMinutes - b.totalDurationMinutes);
-  pushLog(`✅ Found ${connectingRoutes.length} practical connecting routes (layover ≤ ${maxLayoverMinutes / 60}h)`);
+  pushLog(`✅ Found ${connectingRoutes.length} practical connecting routes (layover ≤ 6h)`);
   return connectingRoutes;
 }
 
