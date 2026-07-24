@@ -230,6 +230,9 @@ export default function ResultsSection({
   const isAvailableStatus = (s: string) => {
      if (!s) return false;
      const up = s.toUpperCase();
+     if (up.includes('NOT AVAILABLE') || up.includes('NOT_AVAILABLE') || up.includes('NO ROOM') || up.includes('REGRET') || up.includes('TRAIN CANCELLED')) {
+        return false;
+     }
      if (up.includes('AVL') || up.includes('AVAILABLE') || up.includes('CURR_AV')) return true;
      return false;
   };
@@ -259,7 +262,7 @@ export default function ResultsSection({
               if (c.fare > 0) {
                  const statusText = (c.status || c.statusText || (c.availability === 'AVAILABLE' ? 'AVAILABLE' : c.availability === 'RAC' ? 'RAC' : c.availability === 'WL' ? `WL ${c.waitlistNumber}` : '')).toUpperCase();
                  let score = 999;
-                 if (statusText.includes('AVL') || statusText.includes('AVAILABLE') || statusText.includes('CURR_AV')) score = 1;
+                 if (isAvailableStatus(statusText)) score = 1;
                  else if (statusText.includes('RAC')) score = 2;
                  else if (statusText.includes('% CHANCE')) score = 3;
                  else if (statusText.includes('WL')) {
