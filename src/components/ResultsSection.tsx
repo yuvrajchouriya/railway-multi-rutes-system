@@ -231,22 +231,17 @@ export default function ResultsSection({
      if (!s) return false;
      const up = s.toUpperCase();
      if (up.includes('AVL') || up.includes('AVAILABLE') || up.includes('CURR_AV')) return true;
-     // Exclude WL, RAC, REGRET, etc. based on user strict 'confirm seat available' request
      return false;
   };
-
 
   const getBestFareAndStatus = (route: Route) => {
     if (sortScoresRef.current[route.id]) {
         return sortScoresRef.current[route.id];
     }
   
-    let bestStatusScore = 999;
-    let minFare = 999999;
-    
-    let allAvailable = true;
+    let maxLegScore = 1; // 1 = AVAILABLE
     let totalFare = 0;
-    
+    let allLegsHaveFare = true;
     let isFullyFetched = true;
 
     for (const leg of route.legs) {
@@ -264,7 +259,7 @@ export default function ResultsSection({
               if (c.fare > 0) {
                  const statusText = (c.status || c.statusText || (c.availability === 'AVAILABLE' ? 'AVAILABLE' : c.availability === 'RAC' ? 'RAC' : c.availability === 'WL' ? `WL ${c.waitlistNumber}` : '')).toUpperCase();
                  let score = 999;
-                 if (statusText.includes('AVL') || statusText.includes('AVAILABLE')) score = 1;
+                 if (statusText.includes('AVL') || statusText.includes('AVAILABLE') || statusText.includes('CURR_AV')) score = 1;
                  else if (statusText.includes('RAC')) score = 2;
                  else if (statusText.includes('% CHANCE')) score = 3;
                  else if (statusText.includes('WL')) {
@@ -283,24 +278,17 @@ export default function ResultsSection({
            }
         }
         
-        if (legBestScore === 999) {
-            allAvailable = false;
-        }
-        bestStatusScore = Math.max(bestStatusScore === 999 ? 0 : bestStatusScore, legBestScore);
+        maxLegScore = Math.max(maxLegScore, legBestScore);
+
         if (legMinFare < 999999) {
             totalFare += legMinFare;
         } else {
-            allAvailable = false;
+            allLegsHaveFare = false;
         }
     }
     
-    if (allAvailable) {
-        minFare = totalFare;
-    } else {
-        bestStatusScore = 999;
-    }
-    
-    const stats = { statusScore: bestStatusScore, minFare };
+    const minFare = allLegsHaveFare && totalFare > 0 ? totalFare : 999999;
+    const stats = { statusScore: maxLegScore, minFare };
     if (isFullyFetched) {
         sortScoresRef.current[route.id] = stats;
     }
@@ -323,7 +311,6 @@ export default function ResultsSection({
                     return isAvailableStatus(statusText) && cls.fare > 0;
                 });
             }
-            // Connecting routes often don't have initial classes, assume true until fetched
             return true;
          };
          return r.legs.every(leg => checkLeg(leg));
@@ -333,33 +320,22 @@ export default function ResultsSection({
   // Smart Sorting logic
   filtered.sort((a, b) => {
     if (activeFilter !== 'high-confirm-chance') {
-      // Fast to slow duration sort for 'All', 'Direct', 'Connecting'
       return a.totalDurationMinutes - b.totalDurationMinutes;
     }
 
-    // Intelligence Sort (For High Confirm Chance)
+    // Intelligence Sort for High Confirm Chance Tab:
+    // 1. Fully Available routes across ALL legs come first (statusScore === 1)
+    // 2. Cheapest total fare first (minFare ascending)
+    // 3. Fastest travel time tie-breaker
     const aStats = getBestFareAndStatus(a);
     const bStats = getBestFareAndStatus(b);
-    
-    // In high-confirm-chance tab, prioritize Available routes first, then by cheapest fare
-    if (activeFilter === 'high-confirm-chance') {
-       if (aStats.statusScore !== bStats.statusScore) {
-          return aStats.statusScore - bStats.statusScore;
-       }
-       return aStats.minFare - bStats.minFare;
-    }
     
     if (aStats.statusScore !== bStats.statusScore) {
        return aStats.statusScore - bStats.statusScore;
     }
-    
-    if (aStats.minFare !== bStats.minFare && aStats.minFare < 999999 && bStats.minFare < 999999) {
+    if (aStats.minFare !== bStats.minFare) {
        return aStats.minFare - bStats.minFare;
     }
-    
-    // Tie-breaker: direct over connecting
-    if (a.type === 'direct' && b.type !== 'direct') return -1;
-    if (a.type !== 'direct' && b.type === 'direct') return 1;
     
     return a.totalDurationMinutes - b.totalDurationMinutes;
   });
