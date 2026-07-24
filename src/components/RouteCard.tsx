@@ -17,6 +17,7 @@ interface Props {
   fetchingLegs: Set<string>;
   setGlobalFaresCache: React.Dispatch<React.SetStateAction<Record<string, { data: any[], updatedAt: string, originCode?: string, originName?: string }>>>;
   activeFilter?: string;
+  onFetchFares?: (route: Route) => void;
 }
 
 // ── Tag badge pill ─────────────────────────────────────────
@@ -304,7 +305,7 @@ function LegCard({ leg, showDivider = false, liveClasses }: { leg: TrainLeg; sho
 }
 
 // ── Main RouteCard ─────────────────────────────────────────
-export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGlobalFaresCache, activeFilter }: Props) {
+export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGlobalFaresCache, activeFilter, onFetchFares }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -774,19 +775,46 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
             );
           })()}
 
-          {/* Duration + expand button */}
-          <div className="flex items-center justify-between mt-[-10px]">
+          {/* Duration + Check Seats Button + Details button */}
+          <div className="flex items-center justify-between mt-[-10px] gap-2 flex-wrap">
             <div className="flex items-center gap-2 text-[15px] font-bold text-white">
               <Clock className="w-4 h-4 text-gray-100" />
               {fmtDuration(route.totalDurationMinutes)}
             </div>
 
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="flex items-center gap-2 px-4 py-1.5 text-[13px] font-bold text-[var(--color-brand-blue)] border border-[var(--color-brand-blue)] rounded-lg hover:bg-[#3A506B]/50 transition-colors"
-            >
-              DETAILS {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
+            <div className="flex items-center gap-2">
+              {(!latestUpdatedAt && !isAnyFetching && !isRefreshing) && (
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    setExpanded(true);
+                    if (onFetchFares) {
+                      await onFetchFares(route);
+                    } else {
+                      await handleManualRefresh();
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] md:text-[13px] font-extrabold text-white bg-green-600 hover:bg-green-500 rounded-lg shadow-sm transition-transform active:scale-95 animate-pulse"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Check Seats & Fare
+                </button>
+              )}
+
+              {(isAnyFetching || isRefreshing) && (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-yellow-400" />
+                  Loading Seats...
+                </div>
+              )}
+
+              <button
+                onClick={() => setExpanded(!expanded)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-bold text-[var(--color-brand-blue)] border border-[var(--color-brand-blue)] rounded-lg hover:bg-[#3A506B]/50 transition-colors"
+              >
+                DETAILS {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
         </div>
 

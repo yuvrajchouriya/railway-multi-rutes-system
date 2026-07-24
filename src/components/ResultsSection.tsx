@@ -78,99 +78,78 @@ export default function ResultsSection({
   };
   const allRoutes = [...directRoutes, ...connectingRoutes];
 
-  // ── Concurrent Fetching Logic ──────────────────────────────
+  const handleFetchRouteFares = async (route: Route) => {
+    for (const leg of route.legs) {
+      const legKey = `${leg.trainNumber}|${leg.fromStation.code}|${leg.toStation.code}|${leg.journeyDate}`;
+      
+      let isAlreadyCached = false;
+      setGlobalFaresCache(prev => {
+        if (prev[legKey]) isAlreadyCached = true;
+        return prev;
+      });
+
+      if (!isAlreadyCached) {
+        setFetchingLegs(prev => new Set(prev).add(legKey));
+
+        let apiDate = leg.journeyDate;
+        if (apiDate.includes('-') && apiDate.split('-')[0].length === 4) {
+          const parts = apiDate.split('-');
+          apiDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+
+        try {
+          const res = await fetch(`/api/fares?trainNo=${leg.trainNumber}&from=${leg.fromStation.code}&to=${leg.toStation.code}&date=${apiDate}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.data) {
+              setGlobalFaresCache(prev => {
+                const next = { ...prev };
+                next[legKey] = { data: data.data, updatedAt: data.updatedAt, originCode: data.originCode, originName: data.originName };
+                if (data.bulkData) {
+                  for (const tNo of Object.keys(data.bulkData)) {
+                    const bulkLegKey = `${tNo}|${leg.fromStation.code}|${leg.toStation.code}|${leg.journeyDate}`;
+                    next[bulkLegKey] = {
+                      data: data.bulkData[tNo].data,
+                      updatedAt: data.updatedAt,
+                      originCode: data.bulkData[tNo].originCode,
+                      originName: data.bulkData[tNo].originName
+                    };
+                  }
+                }
+                return next;
+              });
+            }
+          }
+        } catch (err) {
+          console.error("Fetch route fares failed", err);
+        } finally {
+          setFetchingLegs(prev => {
+            const next = new Set(prev);
+            next.delete(legKey);
+            return next;
+          });
+        }
+      }
+    }
+  };
+
+  // ── Auto-Fetch Top 2 Routes Only (On-Demand Strategy) ──────────────────────────────
   useEffect(() => {
     let isCancelled = false;
     
-    const fetchAll = async () => {
-      const processedThisRun = new Set<string>();
-      
-      // Sort routes by duration to match initial UI order so top routes fetch first
+    const fetchTopRoutes = async () => {
       const sortedForQueue = [...allRoutes].sort((a, b) => a.totalDurationMinutes - b.totalDurationMinutes);
-      
-      const queue: any[] = [];
-      for (const route of sortedForQueue) {
-         for (const leg of route.legs) {
-             const legKey = `${leg.trainNumber}|${leg.fromStation.code}|${leg.toStation.code}|${leg.journeyDate}`;
-             queue.push({ leg, legKey, route });
-         }
-      }
+      // Auto-fetch top 2 routes only to save 90% API calls!
+      const topRoutesToFetch = sortedForQueue.slice(0, 2);
 
-      // Concurrency limit
-      const CONCURRENCY = 4;
-      let activeWorkers = 0;
-      let queueIndex = 0;
-
-      const processNext = async () => {
-         if (isCancelled || queueIndex >= queue.length) return;
-         const current = queue[queueIndex++];
-         activeWorkers++;
-         
-         const { leg, legKey } = current;
-         
-         try {
-             let isCached = false;
-             setGlobalFaresCache(prev => {
-                if (prev[legKey]) isCached = true;
-                return prev;
-             });
-
-             if (!isCached && !processedThisRun.has(legKey)) {
-                 processedThisRun.add(legKey);
-                 setFetchingLegs(prev => new Set(prev).add(legKey));
-
-                 let apiDate = leg.journeyDate;
-                 if (apiDate.includes('-') && apiDate.split('-')[0].length === 4) {
-                    const parts = apiDate.split('-');
-                    apiDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                 }
-
-                 const res = await fetch(`/api/fares?trainNo=${leg.trainNumber}&from=${leg.fromStation.code}&to=${leg.toStation.code}&date=${apiDate}`);
-                 if (res.ok) {
-                    const data = await res.json();
-                     if (data.success && data.data) {
-                        setGlobalFaresCache(prev => {
-                           const next = { ...prev };
-                           next[legKey] = { data: data.data, updatedAt: data.updatedAt, originCode: data.originCode, originName: data.originName };
-                           
-                           if (data.bulkData) {
-                              for (const tNo of Object.keys(data.bulkData)) {
-                                 const bulkLegKey = `${tNo}|${leg.fromStation.code}|${leg.toStation.code}|${leg.journeyDate}`;
-                                 next[bulkLegKey] = {
-                                    data: data.bulkData[tNo].data,
-                                    updatedAt: data.updatedAt,
-                                    originCode: data.bulkData[tNo].originCode,
-                                    originName: data.bulkData[tNo].originName
-                                 };
-                              }
-                           }
-                           return next;
-                        });
-                     }
-                 }
-             }
-         } catch (err) {
-            console.error("Fetch failed", err);
-         } finally {
-            setFetchingLegs(prev => {
-               const next = new Set(prev);
-               next.delete(legKey);
-               return next;
-            });
-            activeWorkers--;
-            setTimeout(() => {
-                if (!isCancelled) processNext();
-            }, 100);
-         }
-      };
-
-      for (let i = 0; i < Math.min(CONCURRENCY, queue.length); i++) {
-         processNext();
+      for (const route of topRoutesToFetch) {
+        if (isCancelled) break;
+        await handleFetchRouteFares(route);
       }
     };
 
     if (allRoutes.length > 0) {
-       fetchAll();
+       fetchTopRoutes();
     }
 
     return () => { isCancelled = true; };
@@ -419,6 +398,7 @@ export default function ResultsSection({
                 fetchingLegs={fetchingLegs}
                 setGlobalFaresCache={setGlobalFaresCache}
                 activeFilter={activeFilter}
+                onFetchFares={handleFetchRouteFares}
              />
           ))
         ) : (
