@@ -170,16 +170,28 @@ const parseT = (t: string) => {
   return parseInt(parts[0] || '0') * 60 + parseInt(parts[1] || '0');
 };
 
-const getMaxAllowedDurationMinutes = (fastestMins: number | null) => {
-  if (fastestMins === null) return Infinity;
-  const hours = fastestMins / 60;
-  if (hours < 5) return fastestMins + (2 * 60);
-  if (hours < 10) return fastestMins + (3 * 60);
-  if (hours < 15) return fastestMins + (5 * 60);
-  if (hours < 20) return fastestMins + (7 * 60);
-  if (hours < 30) return fastestMins + (10 * 60);
-  if (hours < 40) return fastestMins + (13 * 60);
-  return fastestMins + (15 * 60);
+// Strict User Rule: Max Allowed Multi-Route Duration Table based on Direct Train Time
+const getMaxAllowedDurationMinutes = (fastestMins: number | null, distanceKm: number = Infinity) => {
+  let baseMins = fastestMins;
+  if (baseMins === null || baseMins === undefined || baseMins === Infinity) {
+    if (distanceKm !== Infinity && distanceKm > 0) {
+      // Estimate baseline duration at average train speed ~45 km/h
+      baseMins = Math.round((distanceKm / 45) * 60);
+    } else {
+      return Infinity;
+    }
+  }
+
+  const hours = baseMins / 60;
+  let allowedExtraHours = 15;
+  if (hours < 5) allowedExtraHours = 2;
+  else if (hours < 10) allowedExtraHours = 3;
+  else if (hours < 15) allowedExtraHours = 5;
+  else if (hours < 20) allowedExtraHours = 7;
+  else if (hours < 30) allowedExtraHours = 10;
+  else if (hours < 40) allowedExtraHours = 13;
+
+  return baseMins + (allowedExtraHours * 60);
 };
 
 export async function findConnectingRoutes(
@@ -204,9 +216,9 @@ export async function findConnectingRoutes(
     return connectingRoutes;
   }
 
-  const maxAllowedDuration = getMaxAllowedDurationMinutes(fastestDirectDurationMinutes);
+  const maxAllowedDuration = getMaxAllowedDurationMinutes(fastestDirectDurationMinutes, tripDistance);
 
-  pushLog(`🔄 Multi-route search: ${from} ➔ ${to} on ${date} (Max layover: 6h)`);
+  pushLog(`🔄 Multi-route search: ${from} ➔ ${to} on ${date} (Max layover: 6h, Max allowed total time: ${(maxAllowedDuration/60).toFixed(1)}h)`);
 
   const junctionScores = JUNCTIONS
     .filter(j => j !== primaryFrom && j !== primaryTo)
@@ -268,7 +280,7 @@ export async function findConnectingRoutes(
 
           const totalDuration = leg1.durationMinutes + layover + leg2.durationMinutes;
 
-          // Filter out overly long routes if direct trains are available
+          // Enforce strict User Time Rule: Filter out routes exceeding max allowed duration
           if (totalDuration > maxAllowedDuration) continue;
 
           seenRouteIds.add(routeId);
@@ -303,7 +315,7 @@ export async function findConnectingRoutes(
   }
 
   connectingRoutes.sort((a, b) => a.totalDurationMinutes - b.totalDurationMinutes);
-  pushLog(`✅ Found ${connectingRoutes.length} practical connecting routes (layover ≤ 6h)`);
+  pushLog(`✅ Found ${connectingRoutes.length} practical connecting routes within time cap (${(maxAllowedDuration/60).toFixed(1)}h)`);
   return connectingRoutes;
 }
 
