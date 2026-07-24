@@ -22,6 +22,9 @@ const JUNCTIONS = [
 const MIN_LAYOVER_MINUTES = 30;
 const MAX_LAYOVER_MINUTES = 360;
 
+// Threshold for skipping connecting routes if direct trains already exist
+const LONG_DISTANCE_KM = 200;
+
 // Metropolitan City Groups mapping
 const CITY_GROUPS: Record<string, string[]> = {
   'DELHI_ALL': ['NDLS', 'DLI', 'NZM', 'ANVT', 'DEE'],
@@ -186,6 +189,15 @@ export async function findConnectingRoutes(
   const primaryFrom = fromStations[0];
   const primaryTo = toStations[0];
   const connectingRoutes: Route[] = [];
+
+  const tripDistance = calculateDistanceKm(primaryFrom, primaryTo);
+  const hasDirectTrains = fastestDirectDurationMinutes !== null;
+
+  // 🔴 Rule: Skip connecting routes if direct trains exist AND trip distance is under 300 km
+  if (hasDirectTrains && tripDistance !== Infinity && tripDistance < LONG_DISTANCE_KM) {
+    pushLog(`⏩ Short trip (< 300km) with direct trains found, skipping connecting routes`);
+    return connectingRoutes;
+  }
 
   const maxAllowedDuration = getMaxAllowedDurationMinutes(fastestDirectDurationMinutes);
 
