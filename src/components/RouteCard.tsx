@@ -274,21 +274,13 @@ function LegCard({ leg, showDivider = false, liveClasses }: { leg: TrainLeg; sho
           </button>
 
           <a
-            href={(() => {
-              // Format date DD-MM-YYYY for confirmtkt redirect
-              let dStr = leg.journeyDate;
-              if (dStr.includes('-') && dStr.split('-')[0].length === 4) {
-                const p = dStr.split('-');
-                dStr = `${p[2]}-${p[1]}-${p[0]}`;
-              }
-              return `https://www.confirmtkt.com/rsuite/train-availability/${leg.fromStation.code}/${leg.toStation.code}/${dStr}`;
-            })()}
+            href="https://www.irctc.co.in/nget/train-search"
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-95 text-white text-xs sm:text-sm font-extrabold rounded-xl transition-all shadow-md active:scale-95"
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs sm:text-sm font-extrabold rounded-xl transition-all shadow-md active:scale-95"
           >
-            <span>Book Now</span>
-            <ArrowRight className="w-4 h-4" />
+            <span>Book on IRCTC</span>
+            <ExternalLink className="w-4 h-4" />
           </a>
         </div>
       </div>

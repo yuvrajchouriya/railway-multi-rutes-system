@@ -191,8 +191,8 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           <div className="w-16 sm:w-20 text-right uppercase text-gray-400 tracking-wider">Departure</div>
         </div>
 
-        {/* ── Main Scrollable Timeline with REAL RAILWAY TRACK ───────────────────────────── */}
-        <div className="flex-1 overflow-y-auto relative bg-[#0D121B] px-0 py-0">
+        {/* ── Main Scrollable Timeline with CONTINUOUS UNBROKEN RAILWAY TRACK ───────────────────────────── */}
+        <div className="flex-1 overflow-y-auto bg-[#0D121B] px-0 py-0">
 
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 text-gray-400 gap-3">
@@ -212,76 +212,93 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           )}
 
           {!loading && !error && data?.route && (
-            <div className="relative">
-              
-              {/* ── REAL RAILWAY TRACK CONTAINER (Centered Steel Rails & Cross Sleepers) ── */}
-              <div
-                onClick={() => setShowSubStations(!showSubStations)}
-                className="absolute left-[64px] sm:left-[80px] top-0 bottom-0 w-10 z-0 cursor-pointer group flex justify-center"
-                title="Click track anywhere to toggle sub-stations (Zoom In / Zoom Out)"
-              >
-                {/* Left Steel Rail */}
-                <div className="absolute left-3 top-0 bottom-0 w-[3px] bg-gradient-to-b from-cyan-400 via-blue-500 to-indigo-600 shadow-[0_0_8px_rgba(6,182,212,0.8)]"></div>
-                {/* Right Steel Rail */}
-                <div className="absolute right-3 top-0 bottom-0 w-[3px] bg-gradient-to-b from-cyan-400 via-blue-500 to-indigo-600 shadow-[0_0_8px_rgba(6,182,212,0.8)]"></div>
-                
-                {/* Railway Sleepers / Ties Pattern between rails */}
-                <div
-                  className="absolute left-3 right-3 top-0 bottom-0 z-0 opacity-40 group-hover:opacity-80 transition-opacity"
-                  style={{
-                    backgroundImage: 'linear-gradient(to bottom, #64748b 2px, transparent 2px)',
-                    backgroundSize: '100% 12px'
-                  }}
-                ></div>
-              </div>
+            <div className="flex flex-col">
+              {visibleRoute.map((stn: any, idx: number) => {
+                const isCurrentLoc = data.currentLocation?.stationCode === stn.stationCode || data.currentLocation?.sequence === stn.sequence;
+                const isPassed = stn.sequence < (data.currentLocation?.sequence || 1);
+                const isHalt = stn.isHalt !== false;
+                const isFirst = idx === 0;
+                const isLast = idx === visibleRoute.length - 1;
 
-              {/* Station Rows */}
-              <div className="flex flex-col">
-                {visibleRoute.map((stn: any, idx: number) => {
-                  const isCurrentLoc = data.currentLocation?.stationCode === stn.stationCode || data.currentLocation?.sequence === stn.sequence;
-                  const isPassed = stn.sequence < (data.currentLocation?.sequence || 1);
-                  const isHalt = stn.isHalt !== false;
+                const formatTime = (t?: string) => {
+                  if (!t) return '--';
+                  const dateObj = new Date(t);
+                  return isNaN(dateObj.getTime()) ? t : dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                };
 
-                  const formatTime = (t?: string) => {
-                    if (!t) return '--';
-                    const dateObj = new Date(t);
-                    return isNaN(dateObj.getTime()) ? t : dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                  };
+                const schArr = formatTime(stn.scheduledArrival || stn.scheduleArrival);
+                const actArr = formatTime(stn.actualArrival);
+                const schDep = formatTime(stn.scheduledDeparture || stn.scheduleDeparture);
+                const actDep = formatTime(stn.actualDeparture);
 
-                  const schArr = formatTime(stn.scheduledArrival || stn.scheduleArrival);
-                  const actArr = formatTime(stn.actualArrival);
-                  const schDep = formatTime(stn.scheduledDeparture || stn.scheduleDeparture);
-                  const actDep = formatTime(stn.actualDeparture);
+                const isDelayedArr = stn.delayArrivalMinutes > 0;
+                const isDelayedDep = stn.delayDepartureMinutes > 0;
 
-                  const isDelayedArr = stn.delayArrivalMinutes > 0;
-                  const isDelayedDep = stn.delayDepartureMinutes > 0;
-
-                  return (
-                    <div
-                      key={stn.stationCode || idx}
-                      onClick={() => setShowSubStations(!showSubStations)}
-                      className={`relative flex items-center justify-between py-3 px-3 border-b border-[#182335] transition-colors z-10 cursor-pointer ${
-                        isHalt
-                          ? 'bg-[#111824]' // Main Halt Station: Black Card
-                          : 'bg-[#182336]/60 text-gray-400 hover:bg-[#1C293E]' // Sub-station: Muted Dark Card
-                      }`}
-                    >
-                      {/* Left: Scheduled & Actual Arrival */}
-                      <div className="w-16 sm:w-20 text-left flex flex-col justify-center flex-shrink-0">
-                        <span className={`text-xs sm:text-sm font-bold ${isHalt ? 'text-gray-200' : 'text-gray-400'}`}>
-                          {schArr !== '--' ? schArr : schDep}
+                return (
+                  <div
+                    key={stn.stationCode || idx}
+                    onClick={() => setShowSubStations(!showSubStations)}
+                    className={`relative flex items-center justify-between py-3 px-3 border-b border-[#182335] transition-colors cursor-pointer ${
+                      isHalt
+                        ? 'bg-[#111824]' // Main Halt Station: Deep Black Card
+                        : 'bg-[#182336]/60 text-gray-400 hover:bg-[#1C293E]' // Sub-station: Muted Card
+                    }`}
+                  >
+                    {/* 1. Left: Scheduled & Actual Arrival */}
+                    <div className="w-16 sm:w-20 text-left flex flex-col justify-center flex-shrink-0">
+                      <span className={`text-xs sm:text-sm font-bold ${isHalt ? 'text-gray-200' : 'text-gray-400'}`}>
+                        {schArr !== '--' ? schArr : schDep}
+                      </span>
+                      {actArr !== '--' && actArr !== schArr && (
+                        <span className={`text-[11px] font-extrabold ${isDelayedArr ? 'text-red-400' : 'text-emerald-400'}`}>
+                          {actArr}
                         </span>
-                        {actArr !== '--' && actArr !== schArr && (
-                          <span className={`text-[11px] font-extrabold ${isDelayedArr ? 'text-red-400' : 'text-emerald-400'}`}>
-                            {actArr}
-                          </span>
-                        )}
-                      </div>
+                      )}
+                    </div>
 
-                      {/* Track Center Column (Icons & Dots DEAD CENTER inside Track) */}
-                      <div className="relative flex items-center justify-center w-10 flex-shrink-0 z-20">
+                    {/* 2. Middle-Left: CONTINUOUS UNBROKEN RAILWAY TRACK COLUMN */}
+                    <div className="relative flex items-center justify-center w-12 sm:w-16 h-12 flex-shrink-0">
+                      
+                      {/* Upper Track Segment (connects to row above) */}
+                      {!isFirst && (
+                        <div className="absolute top-0 bottom-1/2 w-4 z-0 flex justify-center">
+                          {/* Left Rail */}
+                          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-cyan-400 via-blue-500 to-indigo-600 shadow-[0_0_6px_rgba(6,182,212,0.8)]"></div>
+                          {/* Right Rail */}
+                          <div className="absolute right-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-cyan-400 via-blue-500 to-indigo-600 shadow-[0_0_6px_rgba(6,182,212,0.8)]"></div>
+                          {/* Sleepers */}
+                          <div
+                            className="absolute left-0 right-0 top-0 bottom-0 opacity-50 z-0"
+                            style={{
+                              backgroundImage: 'linear-gradient(to bottom, #64748b 2px, transparent 2px)',
+                              backgroundSize: '100% 10px'
+                            }}
+                          ></div>
+                        </div>
+                      )}
+
+                      {/* Lower Track Segment (connects to row below) */}
+                      {!isLast && (
+                        <div className="absolute top-1/2 bottom-0 w-4 z-0 flex justify-center">
+                          {/* Left Rail */}
+                          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-cyan-400 via-blue-500 to-indigo-600 shadow-[0_0_6px_rgba(6,182,212,0.8)]"></div>
+                          {/* Right Rail */}
+                          <div className="absolute right-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-cyan-400 via-blue-500 to-indigo-600 shadow-[0_0_6px_rgba(6,182,212,0.8)]"></div>
+                          {/* Sleepers */}
+                          <div
+                            className="absolute left-0 right-0 top-0 bottom-0 opacity-50 z-0"
+                            style={{
+                              backgroundImage: 'linear-gradient(to bottom, #64748b 2px, transparent 2px)',
+                              backgroundSize: '100% 10px'
+                            }}
+                          ></div>
+                        </div>
+                      )}
+
+                      {/* Track Indicator Element (DEAD CENTER inside the Track Ladder) */}
+                      <div className="relative z-10 flex items-center justify-center">
                         {isCurrentLoc ? (
-                          /* LIVE RUNNING TRAIN BADGE (Centered DEAD CENTER inside Track) */
+                          /* LIVE RUNNING TRAIN BADGE (DEAD CENTER inside Track) */
                           <div className="relative flex items-center justify-center">
                             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 border-2 border-white shadow-[0_0_15px_rgba(6,182,212,0.9)] flex items-center justify-center animate-bounce z-20">
                               <Train className="w-4.5 h-4.5 text-white" />
@@ -289,51 +306,51 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                             <div className="absolute inset-0 rounded-full bg-cyan-400/40 animate-ping z-10"></div>
                           </div>
                         ) : isHalt ? (
-                          /* Major Halt Station Badge (Centered DEAD CENTER inside Track) */
+                          /* Major Halt Station Circle (DEAD CENTER inside Track) */
                           <div className={`w-3.5 h-3.5 rounded-full border-2 border-[#121824] shadow-md ${
                             isPassed ? 'bg-cyan-400' : 'bg-[#2E4566]'
                           }`}></div>
                         ) : (
-                          /* Sub-Station Dot (Centered DEAD CENTER inside Track) */
+                          /* Sub-Station Cyan Dot (DEAD CENTER inside Track) */
                           <div className={`w-2.5 h-2.5 rounded-full border border-[#121824] ${
                             isPassed ? 'bg-cyan-300' : 'bg-[#3A506B]'
                           }`}></div>
                         )}
                       </div>
 
-                      {/* Middle: Station Name, Distance & Platform Badge */}
-                      <div className="flex-1 min-w-0 px-3">
-                        <div className={`text-sm sm:text-base font-extrabold truncate ${isHalt ? 'text-white' : 'text-gray-300 font-semibold'}`}>
-                          {stn.stationName}
-                        </div>
-                        <div className="flex items-center gap-2 text-[11px] text-gray-400 mt-0.5 flex-wrap">
-                          <span>{stn.distanceKm || stn.distance || 0} km</span>
-                          {stn.platform && stn.platform !== '--' && (
-                            <span className="text-gray-200 bg-[#233550] px-1.5 py-0.5 rounded border border-[#374F75] font-bold text-[10px] flex items-center gap-1">
-                              <span>Platform {stn.platform}</span>
-                              <Pencil className="w-2.5 h-2.5 text-gray-400" />
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                    </div>
 
-                      {/* Right: Scheduled & Actual Departure */}
-                      <div className="w-16 sm:w-20 text-right flex flex-col justify-center flex-shrink-0">
-                        <span className={`text-xs sm:text-sm font-bold ${isHalt ? 'text-gray-200' : 'text-gray-400'}`}>
-                          {schDep}
-                        </span>
-                        {actDep !== '--' && actDep !== schDep && (
-                          <span className={`text-[11px] font-extrabold ${isDelayedDep ? 'text-red-400' : 'text-emerald-400'}`}>
-                            {actDep}
+                    {/* 3. Middle-Right: Station Name, Distance & Platform Badge */}
+                    <div className="flex-1 min-w-0 px-3">
+                      <div className={`text-sm sm:text-base font-extrabold truncate ${isHalt ? 'text-white' : 'text-gray-300 font-semibold'}`}>
+                        {stn.stationName}
+                      </div>
+                      <div className="flex items-center gap-2 text-[11px] text-gray-400 mt-0.5 flex-wrap">
+                        <span>{stn.distanceKm || stn.distance || 0} km</span>
+                        {stn.platform && stn.platform !== '--' && (
+                          <span className="text-gray-200 bg-[#233550] px-1.5 py-0.5 rounded border border-[#374F75] font-bold text-[10px] flex items-center gap-1">
+                            <span>Platform {stn.platform}</span>
+                            <Pencil className="w-2.5 h-2.5 text-gray-400" />
                           </span>
                         )}
                       </div>
-
                     </div>
-                  );
-                })}
-              </div>
 
+                    {/* 4. Right: Scheduled & Actual Departure */}
+                    <div className="w-16 sm:w-20 text-right flex flex-col justify-center flex-shrink-0">
+                      <span className={`text-xs sm:text-sm font-bold ${isHalt ? 'text-gray-200' : 'text-gray-400'}`}>
+                        {schDep}
+                      </span>
+                      {actDep !== '--' && actDep !== schDep && (
+                        <span className={`text-[11px] font-extrabold ${isDelayedDep ? 'text-red-400' : 'text-emerald-400'}`}>
+                          {actDep}
+                        </span>
+                      )}
+                    </div>
+
+                  </div>
+                );
+              })}
             </div>
           )}
 
