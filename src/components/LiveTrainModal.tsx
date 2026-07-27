@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, RefreshCw, Train, MapPin, AlertCircle, Clock, Calendar, Bell, Share2, ChevronDown, Check, Layers, Pencil } from 'lucide-react';
+import { X, RefreshCw, Train, MapPin, AlertCircle, Calendar, Bell, Share2, ChevronDown, Check, Pencil } from 'lucide-react';
 
 interface LiveTrainModalProps {
   trainNumber: string;
@@ -45,7 +45,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
       setData(json.data);
     } catch (err: any) {
       setError(err.message || 'Failed to load live status');
-    } fontally: {
+    } finally {
       setLoading(false);
     }
   };
@@ -114,7 +114,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           </div>
         </div>
 
-        {/* ── Top Feature Action Pills Bar (Today, Alarm, Coach, Sub-stations Toggle) ── */}
+        {/* ── Top Feature Action Pills Bar (Today, Alarm, Coach, Share) ── */}
         <div className="bg-[#172030] px-4 py-2 border-b border-[#24334B] flex items-center gap-2 overflow-x-auto scrollbar-hide relative z-20">
           
           {/* Today / Day Selector Pill */}
@@ -153,20 +153,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
             )}
           </div>
 
-          {/* Track Sub-Stations Toggle Pill (Expand / Collapse Sub-Stations) */}
-          <button
-            onClick={() => setShowSubStations(!showSubStations)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all flex-shrink-0 ${
-              showSubStations
-                ? 'bg-blue-600/30 text-cyan-300 border-cyan-500/50'
-                : 'bg-[#24334B] text-gray-400 border-[#34486A]'
-            }`}
-            title="Toggle Sub-Stations (Dots)"
-          >
-            <Layers className="w-3.5 h-3.5 text-cyan-400" />
-            <span>{showSubStations ? 'Sub-Stations ON' : 'Sub-Stations OFF'}</span>
-          </button>
-
           {/* Alarm Pill */}
           <button
             onClick={() => alert('⏰ Station Alarm enabled! We will notify you when train approaches your station.')}
@@ -198,11 +184,11 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
         {/* ── Arrival / Date Header / Departure ───────────────────── */}
         <div className="bg-[#141C2B] px-4 py-2 border-b border-[#25344D] flex items-center justify-between text-xs font-bold text-gray-300">
-          <div className="w-20 text-left uppercase text-gray-400 tracking-wider">Arrival</div>
+          <div className="w-16 sm:w-20 text-left uppercase text-gray-400 tracking-wider">Arrival</div>
           <div className="text-center font-extrabold text-white text-xs sm:text-sm">
             {data?.startDate ? `Day 1 - ${new Date(data.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })}` : 'Live Running Track'}
           </div>
-          <div className="w-20 text-right uppercase text-gray-400 tracking-wider">Departure</div>
+          <div className="w-16 sm:w-20 text-right uppercase text-gray-400 tracking-wider">Departure</div>
         </div>
 
         {/* ── Main Scrollable Timeline with REAL RAILWAY TRACK ───────────────────────────── */}
@@ -228,22 +214,22 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           {!loading && !error && data?.route && (
             <div className="relative">
               
-              {/* ── REAL RAILWAY TRACK DESIGN (Double Parallel Steel Rails + Cross Sleepers) ── */}
+              {/* ── REAL RAILWAY TRACK CONTAINER (Centered Steel Rails & Cross Sleepers) ── */}
               <div
                 onClick={() => setShowSubStations(!showSubStations)}
-                className="absolute left-[84px] sm:left-[104px] top-0 bottom-0 w-[14px] z-0 cursor-pointer group"
-                title="Click track to toggle sub-stations"
+                className="absolute left-[64px] sm:left-[80px] top-0 bottom-0 w-10 z-0 cursor-pointer group flex justify-center"
+                title="Click track anywhere to toggle sub-stations (Zoom In / Zoom Out)"
               >
                 {/* Left Steel Rail */}
-                <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-cyan-400 via-blue-500 to-indigo-600 shadow-[0_0_8px_rgba(6,182,212,0.8)]"></div>
+                <div className="absolute left-3 top-0 bottom-0 w-[3px] bg-gradient-to-b from-cyan-400 via-blue-500 to-indigo-600 shadow-[0_0_8px_rgba(6,182,212,0.8)]"></div>
                 {/* Right Steel Rail */}
-                <div className="absolute right-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-cyan-400 via-blue-500 to-indigo-600 shadow-[0_0_8px_rgba(6,182,212,0.8)]"></div>
+                <div className="absolute right-3 top-0 bottom-0 w-[3px] bg-gradient-to-b from-cyan-400 via-blue-500 to-indigo-600 shadow-[0_0_8px_rgba(6,182,212,0.8)]"></div>
                 
-                {/* Railway Sleepers / Ties Pattern */}
+                {/* Railway Sleepers / Ties Pattern between rails */}
                 <div
-                  className="absolute inset-0 z-0 opacity-40 group-hover:opacity-70 transition-opacity"
+                  className="absolute left-3 right-3 top-0 bottom-0 z-0 opacity-40 group-hover:opacity-80 transition-opacity"
                   style={{
-                    backgroundImage: 'linear-gradient(to bottom, #475569 2px, transparent 2px)',
+                    backgroundImage: 'linear-gradient(to bottom, #64748b 2px, transparent 2px)',
                     backgroundSize: '100% 12px'
                   }}
                 ></div>
@@ -273,14 +259,15 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                   return (
                     <div
                       key={stn.stationCode || idx}
-                      className={`relative flex items-center justify-between py-3 px-3 border-b border-[#182335] transition-colors z-10 ${
+                      onClick={() => setShowSubStations(!showSubStations)}
+                      className={`relative flex items-center justify-between py-3 px-3 border-b border-[#182335] transition-colors z-10 cursor-pointer ${
                         isHalt
                           ? 'bg-[#111824]' // Main Halt Station: Black Card
-                          : 'bg-[#182336]/60 text-gray-400' // Sub-station: Muted Dark Card
+                          : 'bg-[#182336]/60 text-gray-400 hover:bg-[#1C293E]' // Sub-station: Muted Dark Card
                       }`}
                     >
                       {/* Left: Scheduled & Actual Arrival */}
-                      <div className="w-[72px] sm:w-[88px] text-left flex flex-col justify-center flex-shrink-0">
+                      <div className="w-16 sm:w-20 text-left flex flex-col justify-center flex-shrink-0">
                         <span className={`text-xs sm:text-sm font-bold ${isHalt ? 'text-gray-200' : 'text-gray-400'}`}>
                           {schArr !== '--' ? schArr : schDep}
                         </span>
@@ -291,23 +278,23 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                         )}
                       </div>
 
-                      {/* Track Dot / Live Train Badge */}
-                      <div className="relative flex items-center justify-center w-8 flex-shrink-0 z-20">
+                      {/* Track Center Column (Icons & Dots DEAD CENTER inside Track) */}
+                      <div className="relative flex items-center justify-center w-10 flex-shrink-0 z-20">
                         {isCurrentLoc ? (
-                          /* LIVE RUNNING TRAIN BADGE (Glowing Circular Blue Badge with Motion Animation) */
-                          <div className="relative -ml-0.5">
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 border-2 border-white shadow-[0_0_15px_rgba(6,182,212,0.9)] flex items-center justify-center animate-bounce">
-                              <Train className="w-5 h-5 text-white" />
+                          /* LIVE RUNNING TRAIN BADGE (Centered DEAD CENTER inside Track) */
+                          <div className="relative flex items-center justify-center">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 border-2 border-white shadow-[0_0_15px_rgba(6,182,212,0.9)] flex items-center justify-center animate-bounce z-20">
+                              <Train className="w-4.5 h-4.5 text-white" />
                             </div>
-                            <div className="absolute -inset-1 rounded-full bg-cyan-400/40 animate-ping z-0"></div>
+                            <div className="absolute inset-0 rounded-full bg-cyan-400/40 animate-ping z-10"></div>
                           </div>
                         ) : isHalt ? (
-                          /* Major Station Halt Badge */
-                          <div className={`w-4 h-4 rounded-full border-2 border-[#121824] shadow-md ${
+                          /* Major Halt Station Badge (Centered DEAD CENTER inside Track) */
+                          <div className={`w-3.5 h-3.5 rounded-full border-2 border-[#121824] shadow-md ${
                             isPassed ? 'bg-cyan-400' : 'bg-[#2E4566]'
                           }`}></div>
                         ) : (
-                          /* Sub-Station Dot (Small Dot on Track) */
+                          /* Sub-Station Dot (Centered DEAD CENTER inside Track) */
                           <div className={`w-2.5 h-2.5 rounded-full border border-[#121824] ${
                             isPassed ? 'bg-cyan-300' : 'bg-[#3A506B]'
                           }`}></div>
@@ -331,7 +318,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                       </div>
 
                       {/* Right: Scheduled & Actual Departure */}
-                      <div className="w-[72px] sm:w-[88px] text-right flex flex-col justify-center flex-shrink-0">
+                      <div className="w-16 sm:w-20 text-right flex flex-col justify-center flex-shrink-0">
                         <span className={`text-xs sm:text-sm font-bold ${isHalt ? 'text-gray-200' : 'text-gray-400'}`}>
                           {schDep}
                         </span>
