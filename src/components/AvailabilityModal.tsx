@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TrainLeg } from '../types/railway';
-import { ArrowLeft, Clock, Info, Calendar } from 'lucide-react';
+import { ArrowLeft, ExternalLink } from 'lucide-react';
 
 const fmtDuration = (m: number) => `${Math.floor(m / 60)}h ${m % 60}m`;
 
@@ -14,6 +14,18 @@ export default function AvailabilityModal({ leg, onClose, liveClasses }: Availab
   const [classesData, setClassesData] = useState<any[]>(liveClasses || []);
   const [loading, setLoading] = useState(!liveClasses || liveClasses.length === 0);
 
+  // ── Mobile Single-Back History Handler ──────────────────────────────────
+  useEffect(() => {
+    window.history.pushState({ modalOpen: 'AvailabilityModal' }, '');
+    const handlePopState = () => {
+      onClose();
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [onClose]);
+
   useEffect(() => {
     if (liveClasses && liveClasses.length > 0) {
        setClassesData(liveClasses.filter((c: any) => c.status !== null));
@@ -23,7 +35,6 @@ export default function AvailabilityModal({ leg, onClose, liveClasses }: Availab
     
     setLoading(true);
     
-    // leg.journeyDate is usually YYYY-MM-DD, API expects DD-MM-YYYY
     let apiDate = leg.journeyDate;
     if (apiDate.includes('-') && apiDate.split('-')[0].length === 4) {
        const [year, month, day] = apiDate.split('-');
@@ -34,7 +45,6 @@ export default function AvailabilityModal({ leg, onClose, liveClasses }: Availab
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data) {
-          // Only show classes that actually have availability data (status is not null)
           const validClasses = data.data.filter((c: any) => c.status !== null);
           setClassesData(validClasses);
         }
@@ -43,7 +53,6 @@ export default function AvailabilityModal({ leg, onClose, liveClasses }: Availab
       .finally(() => setLoading(false));
   }, [leg, liveClasses]);
 
-  // Format date nicely e.g., "Thu, 16 Jul"
   const formattedDate = new Date(leg.journeyDate).toLocaleDateString('en-GB', {
     weekday: 'short',
     day: 'numeric',
@@ -77,7 +86,7 @@ export default function AvailabilityModal({ leg, onClose, liveClasses }: Availab
            </p>
         </div>
 
-        {/* Date Tab (Just showing the selected date) */}
+        {/* Date Tab */}
         <div className="bg-[var(--color-brand-navy-card)] rounded-t-lg border border-[#3A506B] flex overflow-hidden mb-4">
            <div className="flex-1 p-3 text-center border-b-4 border-blue-600 bg-blue-900/20">
               <div className="text-sm font-semibold text-white">{formattedDate}</div>
@@ -116,16 +125,28 @@ export default function AvailabilityModal({ leg, onClose, liveClasses }: Availab
                     const textColor = isAvailable || isWl ? 'text-green-400' : 'text-gray-300';
                     
                     return (
-                       <div key={idx} className={`border ${borderColor} ${bgColor} rounded-md p-3 flex flex-col hover:shadow-md transition-shadow`}>
-                          <div className="flex justify-between items-center mb-2">
-                             <div className="font-bold text-white text-lg">{item.classType}</div>
-                             <div className="text-gray-300 font-semibold text-sm">
-                                {item.fare ? `₹${item.fare}` : 'N/A'}
-                             </div>
+                       <div key={idx} className={`border ${borderColor} ${bgColor} rounded-md p-3 flex flex-col justify-between hover:shadow-md transition-shadow`}>
+                          <div>
+                            <div className="flex justify-between items-center mb-2">
+                               <div className="font-bold text-white text-lg">{item.classType}</div>
+                               <div className="text-gray-300 font-semibold text-sm">
+                                  {item.fare ? `₹${item.fare}` : 'N/A'}
+                               </div>
+                            </div>
+                            <div className={`font-bold ${textColor} text-base mt-1`}>
+                               {item.status || 'N/A'}
+                            </div>
                           </div>
-                          <div className={`font-bold ${textColor} text-base mt-1`}>
-                             {item.status || 'N/A'}
-                          </div>
+
+                          <a
+                            href="https://www.irctc.co.in/nget/train-search"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-3 w-full inline-flex items-center justify-center gap-1 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold py-2 px-2 rounded-lg text-xs transition-all shadow-md active:scale-95"
+                          >
+                            <span>Book on IRCTC</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
                        </div>
                     );
                  }) : (
