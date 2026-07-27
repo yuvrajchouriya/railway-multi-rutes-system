@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Route } from '@/types/railway';
 import SearchForm from '@/components/SearchForm';
 import ResultsSection from '@/components/ResultsSection';
@@ -14,6 +14,24 @@ export default function Home() {
   const [searchedFrom, setSearchedFrom] = useState('');
   const [searchedTo, setSearchedTo] = useState('');
   const [searchedDate, setSearchedDate] = useState('');
+
+  // ── Mobile Single Back Navigation Fix (Page Level) ─────────────────────
+  useEffect(() => {
+    if (results !== null) {
+      window.history.pushState({ view: 'results' }, '');
+    }
+  }, [results !== null]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setResults(null);
+      setIsLoading(false);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
 
   const handleSearch = async (from: string, to: string, date: string) => {
     setIsLoading(true);

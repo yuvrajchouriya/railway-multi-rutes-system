@@ -142,64 +142,61 @@ export async function searchLiveTrainsConfirmTkt(
     const classes: ClassAvailability[] = [];
     const cache = t.avaiblityCache || t.availabilityCache || {};
     
-    // Check if ConfirmTkt returned data for the requested date. If not, it's returning old cached data!
-    const isSameDate = String(t.departureDate) === String(formattedDate);
-    
-    if (!isSameDate) {
-       const allCls = t.avlClasses || Object.keys(cache) || ['SL', '3A', '2A', '1A'];
-       for (const cls of allCls) {
-           classes.push({
-             classType: cls as ClassType,
-             availability: 'UNKNOWN',
-             availableSeats: undefined,
-             waitlistNumber: undefined,
-             fare: 0,
-             confirmProbabilityPercent: 0,
-             confirmProbability: 'MEDIUM',
-             statusText: 'Not Available',
-             nextDatesAvailability: []
-           });
-       }
-    } else {
-      // Parse live classes from ConfirmTkt's availabilityCache
+    // Always parse live availabilityCache returned in search response
+    if (Object.keys(cache).length > 0) {
       for (const cls of Object.keys(cache)) {
         const info = cache[cls];
-      if (info && info.fare) {
-        let availability: any = 'UNKNOWN';
-        let availableSeats = undefined;
-        let waitlistNumber = undefined;
-        
-        const statusStr = (info.availabilityDisplayName || info.availability || '').toUpperCase();
-        if (statusStr.includes('AVL') || statusStr.includes('AVAILABLE')) {
-          availability = 'AVAILABLE';
-          const match = statusStr.match(/\d+/);
-          if (match) availableSeats = parseInt(match[0]);
-        } else if (statusStr.includes('RAC')) {
-          availability = 'RAC';
-          const match = statusStr.match(/\d+/);
-          if (match) waitlistNumber = parseInt(match[0]);
-        } else if (statusStr.includes('WL') || statusStr.includes('WAIT')) {
-          availability = 'WL';
-          const match = statusStr.match(/WL\s*(\d+)/) || statusStr.match(/\d+/);
-          if (match) waitlistNumber = parseInt(match[1] || match[0]);
-        } else if (statusStr.includes('REGRET')) {
-          availability = 'UNKNOWN'; // Maps to regret in UI logic usually, but keep simple here
-        }
+        if (info && info.fare) {
+          let availability: any = 'UNKNOWN';
+          let availableSeats = undefined;
+          let waitlistNumber = undefined;
+          
+          const statusStr = (info.availabilityDisplayName || info.availability || '').toUpperCase();
+          if (statusStr.includes('AVL') || statusStr.includes('AVAILABLE')) {
+            availability = 'AVAILABLE';
+            const match = statusStr.match(/\d+/);
+            if (match) availableSeats = parseInt(match[0]);
+          } else if (statusStr.includes('RAC')) {
+            availability = 'RAC';
+            const match = statusStr.match(/\d+/);
+            if (match) waitlistNumber = parseInt(match[0]);
+          } else if (statusStr.includes('WL') || statusStr.includes('WAIT')) {
+            availability = 'WL';
+            const match = statusStr.match(/WL\s*(\d+)/) || statusStr.match(/\d+/);
+            if (match) waitlistNumber = parseInt(match[1] || match[0]);
+          }
 
+          classes.push({
+            classType: cls as ClassType,
+            availability: availability,
+            availableSeats: availableSeats,
+            waitlistNumber: waitlistNumber,
+            fare: parseInt(info.fare || '0'),
+            confirmProbabilityPercent: info.confirmProbability || 50,
+            confirmProbability: (info.confirmProbability || 50) > 70 ? 'HIGH' : 'MEDIUM',
+            statusText: info.availabilityDisplayName || info.availability || '',
+            nextDatesAvailability: []
+          });
+        }
+      }
+    }
+    
+    if (classes.length === 0) {
+      const fallbackCls = t.avlClasses || ['SL', '3A', '2A', '1A'];
+      for (const cls of fallbackCls) {
         classes.push({
           classType: cls as ClassType,
-          availability: availability,
-          availableSeats: availableSeats,
-          waitlistNumber: waitlistNumber,
-          fare: parseInt(info.fare || '0'),
-          confirmProbabilityPercent: info.confirmProbability || 50,
-          confirmProbability: (info.confirmProbability || 50) > 70 ? 'HIGH' : 'MEDIUM',
-          statusText: info.availabilityDisplayName || info.availability || '',
+          availability: 'UNKNOWN',
+          availableSeats: undefined,
+          waitlistNumber: undefined,
+          fare: 0,
+          confirmProbabilityPercent: 0,
+          confirmProbability: 'MEDIUM',
+          statusText: 'Not Available',
           nextDatesAvailability: []
         });
       }
     }
-    } // Close else block
 
     return {
       trainNumber: t.trainNumber,
