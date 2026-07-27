@@ -133,27 +133,7 @@ export default function ResultsSection({
     }
   };
 
-  // ── Auto-Fetch Top 2 Routes Only (On-Demand Strategy) ──────────────────────────────
-  useEffect(() => {
-    let isCancelled = false;
-    
-    const fetchTopRoutes = async () => {
-      const sortedForQueue = [...allRoutes].sort((a, b) => a.totalDurationMinutes - b.totalDurationMinutes);
-      // Auto-fetch top 2 routes only to save 90% API calls!
-      const topRoutesToFetch = sortedForQueue.slice(0, 2);
-
-      for (const route of topRoutesToFetch) {
-        if (isCancelled) break;
-        await handleFetchRouteFares(route);
-      }
-    };
-
-    if (allRoutes.length > 0) {
-       fetchTopRoutes();
-    }
-
-    return () => { isCancelled = true; };
-  }, [directRoutes, connectingRoutes]);
+  // Zero Background Auto-Fetch: All fare/seat requests are strictly 100% On-Demand when user clicks card
 
   // ── Loading skeleton ─────────────────────────────────────
   if (isLoading && allRoutes.length === 0) {
