@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 
-// Server-side NTES Govt Scraper Engine + 2-Minute Speed Cache
+// Server-side Speed Engine for Live Train Running Status (RailRadar Direct + 2-Min Speed Cache)
 const liveStatusCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes cache TTL
+const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Train number is required' }, { status: 400 });
   }
 
-  // Check 2-minute Cache first for sub-second instant response
+  // 1. Check 2-minute Speed Cache
   const now = Date.now();
   if (!forceRefresh && liveStatusCache.has(trainNo)) {
     const cached = liveStatusCache.get(trainNo)!;
@@ -22,10 +22,62 @@ export async function GET(request: Request) {
     }
   }
 
+  // 2. Primary Fast Engine: RailRadar Live API (Responds in ~150ms with full 200+ stations)
+  try {
+    const rrRes = await fetch(`https://railradar.in/api/v1/trains/${trainNo}/live`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      cache: 'no-store'
+    });
+
+    if (rrRes.ok) {
+      const json = await rrRes.json();
+      if (json && json.success && json.data) {
+        const d = json.data;
+        const formattedRoute = (d.route || []).map((stn: any, idx: number) => ({
+          sequence: stn.sequence || idx + 1,
+          stationCode: stn.stationCode || 'STN',
+          stationName: stn.stationName || 'Station',
+          isHalt: stn.isHalt !== false,
+          scheduledArrival: stn.scheduledArrival,
+          scheduledDeparture: stn.scheduledDeparture,
+          actualArrival: stn.actualArrival,
+          actualDeparture: stn.actualDeparture,
+          delayArrivalMinutes: stn.delayArrival || 0,
+          delayDepartureMinutes: stn.delayDeparture || 0,
+          platform: stn.platform || '--',
+          distanceKm: stn.distance !== undefined ? stn.distance : 0,
+          status: stn.status || 'upcoming'
+        }));
+
+        const resultData = {
+          train: {
+            number: d.trainNumber || trainNo,
+            name: d.trainName || d.train?.name || `Train ${trainNo}`,
+            coachPosition: d.train?.coachPosition || d.route?.[0]?.coachPosition || ''
+          },
+          currentLocation: d.currentLocation || {
+            stationCode: formattedRoute[0]?.stationCode || '',
+            stationName: formattedRoute[0]?.stationName || '',
+            sequence: 1
+          },
+          delayMinutes: d.delayMinutes || 0,
+          startDate: d.startDate || new Date().toISOString().split('T')[0],
+          lastUpdated: d.lastUpdatedAt ? new Date(d.lastUpdatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now',
+          route: formattedRoute
+        };
+
+        // Cache result for 2 minutes
+        liveStatusCache.set(trainNo, { data: resultData, timestamp: now });
+        return NextResponse.json({ success: true, data: resultData, source: 'railradar' });
+      }
+    }
+  } catch (err) {
+    console.error("RailRadar Fast Engine Error:", err);
+  }
+
+  // 3. Secondary Engine: Govt NTES Scraper Engine Fallback
   try {
     const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-
-    // Step 1: Initialize session with NTES to get Cookies & CSRF
     const initRes = await fetch(`https://enquiry.indianrail.gov.in/mntes/q?opt=TR&subOpt=running&trainNo=${trainNo}`, {
       headers: { 'User-Agent': userAgent },
       cache: 'no-store'
@@ -34,7 +86,6 @@ export async function GET(request: Request) {
     const rawCookies = initRes.headers.getSetCookie ? initRes.headers.getSetCookie() : [];
     const cookieStr = rawCookies.map(c => c.split(';')[0]).join('; ');
 
-    // Step 2: Fetch CSRF Token from NTES
     const t = Date.now();
     const csrfRes = await fetch(`https://enquiry.indianrail.gov.in/mntes/GetCSRFToken?t=${t}`, {
       headers: {
@@ -53,13 +104,10 @@ export async function GET(request: Request) {
     const tokenName = nameMatch ? nameMatch[1] : 'csrfToken';
     const tokenVal = valMatch ? valMatch[1] : '';
 
-    // Step 3: POST to NTES FindRunningInstance
     const params = new URLSearchParams();
     params.append('trainNo', trainNo);
     params.append('lan', 'en');
-    if (tokenName && tokenVal) {
-      params.append(tokenName, tokenVal);
-    }
+    if (tokenName && tokenVal) params.append(tokenName, tokenVal);
 
     const ntesPostRes = await fetch('https://enquiry.indianrail.gov.in/mntes/tr?opt=TrainRunning&subOpt=FindRunningInstance', {
       method: 'POST',
@@ -74,46 +122,19 @@ export async function GET(request: Request) {
     });
 
     const html = await ntesPostRes.text();
-
-    if (!html || html.length < 500) {
-      // Fallback to RailRadar if NTES is temporarily down
-      const fallbackRes = await fetchFallbackRailRadar(trainNo);
-      if (fallbackRes.status === 200) {
-        const fallbackJson = await fallbackRes.clone().json();
-        if (fallbackJson.data) {
-          liveStatusCache.set(trainNo, { data: fallbackJson.data, timestamp: now });
-        }
-      }
-      return fallbackRes;
-    }
-
-    // Step 4: Parse NTES HTML Output
     const parsedData = parseNTESData(html, trainNo);
 
-    if (!parsedData || !parsedData.route || parsedData.route.length === 0) {
-      const fallbackRes = await fetchFallbackRailRadar(trainNo);
-      if (fallbackRes.status === 200) {
-        const fallbackJson = await fallbackRes.clone().json();
-        if (fallbackJson.data) {
-          liveStatusCache.set(trainNo, { data: fallbackJson.data, timestamp: now });
-        }
-      }
-      return fallbackRes;
+    if (parsedData && parsedData.route && parsedData.route.length > 0) {
+      liveStatusCache.set(trainNo, { data: parsedData, timestamp: now });
+      return NextResponse.json({ success: true, data: parsedData, source: 'ntes' });
     }
-
-    // Save to Cache
-    liveStatusCache.set(trainNo, { data: parsedData, timestamp: now });
-
-    return NextResponse.json({ success: true, data: parsedData });
-
-  } catch (error: any) {
-    console.error('NTES Scraper Error:', error);
-    // Dynamic Fallback
-    return await fetchFallbackRailRadar(trainNo);
+  } catch (err) {
+    console.error("NTES Fallback Engine Error:", err);
   }
+
+  return NextResponse.json({ error: 'Unable to fetch live train running status' }, { status: 500 });
 }
 
-// Helper: Parse NTES HTML Structure
 function parseNTESData(html: string, trainNo: string) {
   const text = html.replace(/<style[\s\S]*?<\/style>/gi, '')
                    .replace(/<script[\s\S]*?<\/script>/gi, '')
@@ -140,8 +161,8 @@ function parseNTESData(html: string, trainNo: string) {
             sequence: route.length + 1,
             stationCode: stnCode,
             stationName: stnName,
-            scheduleArrival: arr,
-            scheduleDeparture: dep,
+            scheduledArrival: arr,
+            scheduledDeparture: dep,
             actualArrival: arr,
             actualDeparture: dep,
             delayArrivalMinutes: 0,
@@ -154,8 +175,7 @@ function parseNTESData(html: string, trainNo: string) {
     }
 
     if (text[i].includes('Last Reported Location') || text[i].includes('Current Location')) {
-      const locName = text[i+1] || '';
-      currentLocation.stationName = locName;
+      currentLocation.stationName = text[i+1] || '';
     }
 
     if (text[i].includes('Late by') || text[i].includes('Delay')) {
@@ -168,33 +188,7 @@ function parseNTESData(html: string, trainNo: string) {
     train: { number: trainNo, name: `Train ${trainNo}` },
     currentLocation,
     delayMinutes,
-    lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    lastUpdated: 'Just now',
     route
   };
-}
-
-async function fetchFallbackRailRadar(trainNo: string) {
-  try {
-    const res = await fetch(`https://api.railradar.in/api/v1/trains/${trainNo}/live`, {
-      cache: 'no-store'
-    });
-    if (!res.ok) throw new Error('RailRadar API failed');
-    const json = await res.json();
-    return NextResponse.json({ success: true, data: json });
-  } catch (e) {
-    return NextResponse.json({
-      success: true,
-      data: {
-        train: { number: trainNo, name: `Express ${trainNo}` },
-        currentLocation: { stationName: 'En Route', sequence: 1 },
-        delayMinutes: 0,
-        lastUpdated: 'Just Now',
-        route: [
-          { sequence: 1, stationCode: 'CWA', stationName: 'Chhindwara Jn', scheduleArrival: '09:45', scheduleDeparture: '09:45', actualArrival: '09:45', actualDeparture: '09:45', delayArrivalMinutes: 0, delayDepartureMinutes: 0, isHalt: true, platform: '1', distanceKm: 0 },
-          { sequence: 2, stationCode: 'BPL', stationName: 'Bhopal Jn', scheduleArrival: '16:45', scheduleDeparture: '17:00', actualArrival: '16:45', actualDeparture: '17:00', delayArrivalMinutes: 0, delayDepartureMinutes: 0, isHalt: true, platform: '2', distanceKm: 207 },
-          { sequence: 3, stationCode: 'NDLS', stationName: 'New Delhi', scheduleArrival: '03:36', scheduleDeparture: '03:36', actualArrival: '03:36', actualDeparture: '03:36', delayArrivalMinutes: 0, delayDepartureMinutes: 0, isHalt: true, platform: '5', distanceKm: 753 }
-        ]
-      }
-    });
-  }
 }
