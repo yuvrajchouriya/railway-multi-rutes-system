@@ -145,23 +145,30 @@ export default function Home() {
               {wishlistItems.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-4">No saved trains in your wishlist yet.</p>
               ) : (
-                wishlistItems.map((trainNo, idx) => (
-                  <div key={idx} className="p-3 bg-[#121927] border border-[#253652] rounded-xl flex items-center justify-between">
-                    <div>
-                      <div className="font-extrabold text-sm text-white">{trainNo}</div>
-                      <div className="text-xs text-gray-400 font-semibold">{trainNo === '20423' ? 'Patalkot Express (CWA - BPL)' : trainNo === '11755' ? 'Rewa Express (NITR - REWA)' : 'Saved Route'}</div>
+                wishlistItems.map((item: any, idx) => {
+                  const tNo = typeof item === 'string' ? item : item.trainNumber;
+                  const tName = typeof item === 'string' ? (item === '20423' ? 'Patalkot Express' : 'Rewa Express') : (item.trainName || 'Saved Train');
+                  const fCode = typeof item === 'object' && item.fromCode ? item.fromCode : (tNo === '20423' ? 'CWA' : 'NITR');
+                  const tCode = typeof item === 'object' && item.toCode ? item.toCode : (tNo === '20423' ? 'BPL' : 'REWA');
+
+                  return (
+                    <div key={idx} className="p-3 bg-[#121927] border border-[#253652] rounded-xl flex items-center justify-between">
+                      <div>
+                        <div className="font-extrabold text-sm text-white">{tNo} - {tName}</div>
+                        <div className="text-xs text-gray-400 font-semibold">{fCode} ➔ {tCode}</div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          handleSearch(fCode, tCode, searchedDate || new Date().toISOString().split('T')[0]);
+                          setShowWishlistModal(false);
+                        }}
+                        className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white font-extrabold text-xs rounded-lg shadow"
+                      >
+                        View
+                      </button>
                     </div>
-                    <button
-                      onClick={() => {
-                        handleSearch(trainNo === '20423' ? 'CWA' : 'NITR', trainNo === '20423' ? 'BPL' : 'REWA', searchedDate || new Date().toISOString().split('T')[0]);
-                        setShowWishlistModal(false);
-                      }}
-                      className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-lg shadow"
-                    >
-                      View
-                    </button>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
