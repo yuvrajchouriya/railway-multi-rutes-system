@@ -1,19 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { X, RefreshCw, Train, MapPin, AlertCircle, Calendar, Bell, Share2, ChevronDown, Check, MessageSquare, ChevronUp, Heart } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, RefreshCw, Train, MapPin, AlertCircle, Calendar, Bell, Share2, ChevronDown, Check, MessageSquare, ChevronUp, Heart, Volume2, VolumeX, CheckCircle, Navigation } from 'lucide-react';
 
 interface LiveTrainModalProps {
   trainNumber: string;
   trainName: string;
   onClose: () => void;
-}
-
-interface WishlistItem {
-  trainNumber: string;
-  trainName: string;
-  fromCode?: string;
-  toCode?: string;
 }
 
 export default function LiveTrainModal({ trainNumber, trainName, onClose }: LiveTrainModalProps) {
@@ -23,12 +16,24 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
   const [selectedDayOffset, setSelectedDayOffset] = useState<number>(0);
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [showCoachModal, setShowCoachModal] = useState(false);
+  const [showAlarmModal, setShowAlarmModal] = useState(false);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
 
-  // ── Mobile Single-Back History Handler (Modal Priority) ─────────────────
+  // ── Station Alarm State & Web Audio Synthesizer ─────────────────────────
+  const [targetAlarmStation, setTargetAlarmStation] = useState<string>('');
+  const [alarmDistanceKm, setAlarmDistanceKm] = useState<number>(10);
+  const [isAlarmActive, setIsAlarmActive] = useState<boolean>(false);
+  const [isAlarmRinging, setIsAlarmRinging] = useState<boolean>(false);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const alarmIntervalRef = useRef<any>(null);
+
+  // Selected Coach for Detailed Info
+  const [selectedCoach, setSelectedCoach] = useState<string | null>(null);
+
+  // ── Mobile Single-Back History Handler ──────────────────────────────────
   useEffect(() => {
     window.history.pushState({ modalOpen: 'LiveTrainModal', view: 'results' }, '');
     const handlePopState = (e: PopStateEvent) => {
@@ -91,7 +96,13 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
       setData(json.data);
 
-      // ── Auto-Detect Live Train Location & Auto-Expand Sub-Station Section ──
+      // Default alarm station to destination if not set
+      if (json.data?.route?.length > 0 && !targetAlarmStation) {
+        const lastStn = json.data.route[json.data.route.length - 1];
+        setTargetAlarmStation(lastStn.stationCode || lastStn.stationName);
+      }
+
+      // ── Auto-Detect Live Location & Auto-Expand Sub-Station Section ──
       if (json.data && json.data.route) {
         let cSeq = json.data.currentLocation?.sequence;
         if (!cSeq && json.data.currentLocation?.stationCode) {
@@ -111,7 +122,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           }
         });
 
-        // Auto-expand section containing the live train
         setExpandedSections(prev => {
           const next = new Set(prev);
           next.add(activeSec);
@@ -128,6 +138,65 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
   useEffect(() => {
     fetchLiveStatus();
   }, [trainNumber]);
+
+  // ── Web Audio Beep Alarm Sound Generator ─────────────────────────────────
+  const startRingingAlarm = () => {
+    setIsAlarmRinging(true);
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = audioCtxRef.current;
+      
+      const playBeep = () => {
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime); // A5 note
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.5);
+      };
+
+      playBeep();
+      alarmIntervalRef.current = setInterval(playBeep, 800);
+    } catch (e) {}
+  };
+
+  const stopRingingAlarm = () => {
+    setIsAlarmRinging(false);
+    if (alarmIntervalRef.current) {
+      clearInterval(alarmIntervalRef.current);
+      alarmIntervalRef.current = null;
+    }
+  };
+
+  // Check alarm distance
+  useEffect(() => {
+    if (!isAlarmActive || !targetAlarmStation || !data?.route) return;
+
+    const targetStnObj = data.route.find((s: any) => s.stationCode === targetAlarmStation || s.stationName === targetAlarmStation);
+    if (!targetStnObj) return;
+
+    let currentSeq = data?.currentLocation?.sequence;
+    if (!currentSeq && data?.currentLocation?.stationCode) {
+      const match = data.route.find((s: any) => s.stationCode === data.currentLocation.stationCode);
+      if (match) currentSeq = match.sequence;
+    }
+
+    if (currentSeq && targetStnObj.sequence) {
+      const currStnObj = data.route.find((s: any) => s.sequence === currentSeq) || data.route[0];
+      const distRemaining = Math.max(0, (targetStnObj.distanceKm || targetStnObj.distance || 0) - (currStnObj?.distanceKm || currStnObj?.distance || 0));
+
+      if (distRemaining <= alarmDistanceKm && !isAlarmRinging) {
+        startRingingAlarm();
+      }
+    }
+  }, [isAlarmActive, targetAlarmStation, alarmDistanceKm, data]);
 
   const openGoogleMaps = (stationName: string) => {
     const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stationName + ' Railway Station')}`;
@@ -167,7 +236,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     });
   };
 
-  // ── Precise Halt-to-Halt Section Id Assignment & Sub-station Counts ─────
+  // Section Mapping & Counts
   let sectionCounter = 0;
   const sectionCounts: Record<number, number> = {};
 
@@ -182,7 +251,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     return { ...stn, sectionId: secId };
   }) : [];
 
-  // Calculate current sequence for live train icon matching
   let currentSeq = data?.currentLocation?.sequence;
   if (!currentSeq && data?.route && data?.currentLocation?.stationCode) {
     const match = data.route.find((s: any) => s.stationCode === data.currentLocation.stationCode);
@@ -190,12 +258,11 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
   }
   if (!currentSeq) currentSeq = 1;
 
-  // 🌟 ALWAYS KEEP LIVE TRAIN STATION VISIBLE (Even if section is collapsed!)
   const visibleRoute = processedRoute.filter((stn: any) => {
-    if (stn.isHalt) return true; // Halt stations always visible
+    if (stn.isHalt) return true;
     const isCurrentLoc = (stn.sequence === currentSeq) || 
                          (data?.currentLocation?.stationCode && stn.stationCode === data.currentLocation.stationCode);
-    if (isCurrentLoc) return true; // 🌟 LIVE TRAIN SUB-STATION IS GUARANTEED ALWAYS VISIBLE!
+    if (isCurrentLoc) return true;
     return expandedSections.has(stn.sectionId);
   });
 
@@ -209,11 +276,27 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     return Math.min(100, Math.max(5, (currentSeq / routeList.length) * 100));
   };
 
+  // Parse Coach Composition
+  const rawCoachStr = data?.train?.coachPosition || data?.coachPosition || 'ENG-SLRD-GS-GS-S1-S2-S3-S4-S5-PC-B1-B2-B3-B4-A1-GS-SLRD';
+  const coachList = rawCoachStr.split('-').map((c: string) => c.trim()).filter(Boolean);
+
+  const getCoachStyle = (code: string) => {
+    const uppercase = code.toUpperCase();
+    if (uppercase.includes('ENG') || uppercase.includes('LOCO')) return { bg: 'bg-amber-950/80 text-amber-300 border-amber-500/50', label: 'Engine' };
+    if (uppercase.includes('GS') || uppercase.includes('GEN') || uppercase.includes('UR')) return { bg: 'bg-[#282561] text-amber-300 border-indigo-500/50', label: 'General Unreserved' };
+    if (uppercase.startsWith('S') && !uppercase.includes('SLR')) return { bg: 'bg-[#064E3B] text-emerald-300 border-emerald-500/50', label: 'Sleeper Class (SL)' };
+    if (uppercase.startsWith('B') || uppercase.includes('3A')) return { bg: 'bg-[#1E3A8A] text-cyan-300 border-cyan-500/50', label: 'AC 3 Tier (3A)' };
+    if (uppercase.startsWith('A') || uppercase.includes('2A')) return { bg: 'bg-[#4C1D95] text-purple-300 border-purple-500/50', label: 'AC 2 Tier (2A)' };
+    if (uppercase.startsWith('H') || uppercase.includes('1A')) return { bg: 'bg-[#831843] text-pink-300 border-pink-500/50', label: 'AC 1st Class (1A)' };
+    if (uppercase.includes('PC')) return { bg: 'bg-[#78350F] text-orange-300 border-orange-500/50', label: 'Pantry Car' };
+    return { bg: 'bg-[#1E293B] text-slate-300 border-slate-600', label: 'Guard / Luggage' };
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="bg-[#0B0F17] border border-[#233148] rounded-none sm:rounded-2xl w-full max-w-2xl h-full sm:h-[92vh] flex flex-col shadow-2xl overflow-hidden text-white font-sans relative">
         
-        {/* ── Top Header with PINK HEART WISHLIST BUTTON ─────────── */}
+        {/* ── Top Header ─────────────────────────────────────────── */}
         <div className="bg-[#182232] px-4 py-3 border-b border-[#2B3B56] flex items-center justify-between z-20">
           <div className="flex items-center gap-3">
             <button onClick={onClose} className="p-1.5 rounded-full hover:bg-white/10 text-gray-300">
@@ -229,7 +312,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Wishlist Pink Heart Button */}
             <button
               onClick={toggleWishlist}
               className="p-2 rounded-xl bg-[#25344D] hover:bg-[#324567] transition-all active:scale-95"
@@ -290,20 +372,26 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
             )}
           </div>
 
+          {/* ⏰ ACTIVE GPS STATION ALARM BUTTON */}
           <button
-            onClick={() => alert('⏰ Station Alarm enabled! We will notify you when train approaches your station.')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#24344D] hover:bg-[#2F4262] text-xs font-bold text-gray-200 border border-[#34486A] transition-all flex-shrink-0"
+            onClick={() => setShowAlarmModal(true)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all flex-shrink-0 border ${
+              isAlarmActive
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/60 shadow-[0_0_12px_rgba(245,158,11,0.5)] animate-pulse'
+                : 'bg-[#24344D] hover:bg-[#2F4262] text-gray-200 border-[#34486A]'
+            }`}
           >
-            <Bell className="w-3.5 h-3.5 text-amber-400" />
-            <span>Alarm</span>
+            <Bell className={`w-3.5 h-3.5 ${isAlarmActive ? 'text-amber-400 animate-bounce' : 'text-amber-400'}`} />
+            <span>{isAlarmActive ? 'Alarm Set ⏰' : 'Alarm'}</span>
           </button>
 
+          {/* 🚃 REAL LIVE COACH COMPOSITION BUTTON */}
           <button
             onClick={() => setShowCoachModal(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#24344D] hover:bg-[#2F4262] text-xs font-bold text-gray-200 border border-[#34486A] transition-all flex-shrink-0"
           >
             <Train className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Coach</span>
+            <span>Coach Position</span>
           </button>
 
           <button
@@ -314,6 +402,22 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
             <span>{copiedShare ? 'Copied!' : 'Share'}</span>
           </button>
         </div>
+
+        {/* ── Active Ringing Alarm Alert Banner ────────────────────── */}
+        {isAlarmRinging && (
+          <div className="bg-gradient-to-r from-red-600 via-amber-600 to-red-600 px-4 py-2.5 text-white font-extrabold text-xs flex items-center justify-between animate-pulse z-30 shadow-lg">
+            <div className="flex items-center gap-2">
+              <Volume2 className="w-5 h-5 text-white animate-bounce" />
+              <span>⏰ WAKE UP! Train is approaching {targetAlarmStation} ({alarmDistanceKm} km remaining)!</span>
+            </div>
+            <button
+              onClick={stopRingingAlarm}
+              className="px-3 py-1 bg-white text-red-600 rounded-lg text-xs font-black hover:bg-gray-100 transition-all shadow"
+            >
+              Stop Alarm
+            </button>
+          </div>
+        )}
 
         {/* ── Arrival / Date Header / Departure ───────────────────── */}
         <div className="bg-[#0B0F17] px-4 py-2 border-b border-[#25344D] flex items-center justify-between text-xs font-bold text-gray-300 z-20">
@@ -376,8 +480,8 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                       onClick={() => toggleSection(stn.sectionId)}
                       className={`relative flex items-center justify-between py-3.5 px-3 transition-colors cursor-pointer ${
                         isHalt
-                          ? 'bg-[#0B0F17] hover:bg-[#121927]' // Main Halt Station: Pitch Black Background
-                          : 'bg-[#2B384B] hover:bg-[#34445A]' // Sub-Station: Continuous Slate Blue-Grey Band
+                          ? 'bg-[#0B0F17] hover:bg-[#121927]'
+                          : 'bg-[#2B384B] hover:bg-[#34445A]'
                       }`}
                     >
                       {/* Left: Scheduled & Actual Arrival */}
@@ -394,13 +498,10 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
                       {/* 100% UNBROKEN CONTINUOUS OVERLAPPING STEEL RAILS TRACK LADDER COLUMN */}
                       <div className="relative w-12 flex-shrink-0 flex items-center justify-center min-h-[56px] z-20">
-                        {/* Continuous Steel Rails (-top-6 to -bottom-6 OVERLAPPING FOR ZERO GAPS!) */}
+                        {/* Continuous Steel Rails */}
                         <div className="absolute -top-6 -bottom-6 w-5 flex justify-center pointer-events-none z-0">
-                          {/* Left Steel Rail */}
                           <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_10px_rgba(6,182,212,1)]"></div>
-                          {/* Right Steel Rail */}
                           <div className="absolute right-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_10px_rgba(6,182,212,1)]"></div>
-                          {/* Sleepers */}
                           <div
                             className="absolute left-0 right-0 top-0 bottom-0 opacity-70"
                             style={{
@@ -410,7 +511,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                           ></div>
                         </div>
 
-                        {/* Station Dot / Live Train Badge (ALWAYS PRESENT & ANIMATED IF HERE!) */}
+                        {/* Station Dot / Live Train Badge */}
                         {isCurrentLoc ? (
                           <div className="relative flex items-center justify-center z-30">
                             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-400 via-blue-500 to-purple-600 border-2 border-white shadow-[0_0_18px_rgba(6,182,212,1)] flex items-center justify-center animate-bounce">
@@ -425,14 +526,13 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                         )}
                       </div>
 
-                      {/* Middle: Station Name, Sub-station Expand Badge & Platform */}
+                      {/* Middle: Station Name & Sub-station Toggle */}
                       <div className="flex-1 min-w-0 px-3 z-10">
                         <div className="flex items-center gap-2">
                           <span className={`text-sm sm:text-base truncate ${isHalt ? 'font-extrabold text-white' : 'font-bold text-slate-100'}`}>
                             {stn.stationName}
                           </span>
                           
-                          {/* Intermediate Sub-stations Toggle Badge on Halt stations */}
                           {isHalt && subCount > 0 && (
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 flex items-center gap-1 flex-shrink-0 shadow">
                               <span>{subCount} sub-stns</span>
@@ -475,37 +575,173 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
         </div>
 
-        {/* ── Coach Position Popup Modal ───────────────────────── */}
+        {/* ── ⏰ GPS STATION PROXIMITY ALARM MODAL ───────────────────── */}
+        {showAlarmModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-[#162132] border border-[#2B3E5C] rounded-2xl p-5 max-w-md w-full shadow-2xl text-white">
+              <div className="flex items-center justify-between pb-3 border-b border-[#263750] mb-4">
+                <h3 className="text-base font-black flex items-center gap-2 text-amber-400">
+                  <Bell className="w-5 h-5 text-amber-400 animate-pulse" />
+                  <span>GPS Station Wake-Up Alarm</span>
+                </h3>
+                <button onClick={() => setShowAlarmModal(false)} className="p-1 rounded-full hover:bg-white/10 text-gray-300">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Target Station Select */}
+              <div className="mb-4">
+                <label className="text-xs text-gray-300 font-bold uppercase tracking-wider block mb-1">
+                  Destination / Target Station:
+                </label>
+                <select
+                  value={targetAlarmStation}
+                  onChange={(e) => setTargetAlarmStation(e.target.value)}
+                  className="w-full bg-[#0D1420] border border-[#2A3C58] rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-amber-400"
+                >
+                  {data?.route?.map((s: any) => (
+                    <option key={s.stationCode || s.sequence} value={s.stationCode || s.stationName}>
+                      {s.stationName} ({s.stationCode}) - {s.distanceKm || s.distance || 0} km
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Distance Warning Threshold */}
+              <div className="mb-5">
+                <label className="text-xs text-gray-300 font-bold uppercase tracking-wider block mb-1">
+                  Ring Alarm When Distance Is:
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[5, 10, 15, 20].map((dist) => (
+                    <button
+                      key={dist}
+                      onClick={() => setAlarmDistanceKm(dist)}
+                      className={`py-2 rounded-xl text-xs font-black border transition-all ${
+                        alarmDistanceKm === dist
+                          ? 'bg-amber-500 text-black border-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.6)]'
+                          : 'bg-[#0D1420] text-gray-300 border-[#25364F] hover:bg-[#1A263B]'
+                      }`}
+                    >
+                      {dist} km
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Toggle Alarm */}
+              <div className="flex gap-2">
+                {isAlarmActive ? (
+                  <button
+                    onClick={() => {
+                      setIsAlarmActive(false);
+                      stopRingingAlarm();
+                    }}
+                    className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-md"
+                  >
+                    <VolumeX className="w-4 h-4" />
+                    <span>Turn Off Alarm</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setIsAlarmActive(true);
+                      setShowAlarmModal(false);
+                    }}
+                    className="flex-1 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95"
+                  >
+                    <CheckCircle className="w-4 h-4 text-black" />
+                    <span>Enable Station Alarm ⏰</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── 🚃 REAL LIVE COACH POSITION MODAL ───────────────────────── */}
         {showCoachModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-[#1A253A] border border-[#2F4264] rounded-2xl p-5 max-w-md w-full shadow-2xl text-white">
-              <div className="flex items-center justify-between pb-3 border-b border-[#2C3E5E] mb-4">
-                <h3 className="text-base font-black flex items-center gap-2">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-[#162132] border border-[#2B3E5C] rounded-2xl p-5 max-w-lg w-full shadow-2xl text-white">
+              <div className="flex items-center justify-between pb-3 border-b border-[#263750] mb-4">
+                <h3 className="text-base font-black flex items-center gap-2 text-emerald-400">
                   <Train className="w-5 h-5 text-emerald-400" />
-                  <span>Coach Composition ({trainNumber})</span>
+                  <span>Real Coach Composition ({trainNumber})</span>
                 </h3>
                 <button onClick={() => setShowCoachModal(false)} className="p-1 rounded-full hover:bg-white/10 text-gray-300">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="bg-[#121927] p-3 rounded-xl border border-[#253652] mb-4">
-                <div className="text-xs text-gray-400 mb-2 font-bold uppercase tracking-wider">Engine to Guard Position:</div>
-                <div className="flex gap-2 overflow-x-auto scrollbar-hide py-1">
-                  {(data?.train?.coachPosition || 'ENG-SLRD-GEN-GEN-S1-S2-S3-S4-S5-B1-B2-GEN-GEN-SLRD').split('-').map((c: string, idx: number) => (
-                    <div key={idx} className="flex-shrink-0 bg-[#223350] border border-[#354D77] px-2.5 py-1.5 rounded-lg text-center font-black text-xs min-w-[44px]">
-                      <div className="text-[9px] text-gray-400 font-normal">#{idx+1}</div>
-                      <div className="text-blue-300">{c}</div>
-                    </div>
-                  ))}
+              {/* Coach Layout Scrollable Row */}
+              <div className="bg-[#0B0F17] p-4 rounded-xl border border-[#23354E] mb-4">
+                <div className="text-[10px] text-gray-400 mb-2 font-bold uppercase tracking-wider flex items-center justify-between">
+                  <span>🚂 Engine (Front)</span>
+                  <span>Guard / SLR (Back) 🏁</span>
+                </div>
+
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide py-2 px-1">
+                  {coachList.map((c: string, idx: number) => {
+                    const style = getCoachStyle(c);
+                    const isSelected = selectedCoach === c;
+
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedCoach(c)}
+                        className={`flex-shrink-0 border px-3 py-2 rounded-xl text-center transition-all flex flex-col items-center min-w-[54px] ${style.bg} ${
+                          isSelected ? 'ring-2 ring-white scale-105 shadow-lg' : 'hover:scale-105'
+                        }`}
+                      >
+                        <div className="text-[9px] opacity-75 font-bold">#{idx + 1}</div>
+                        <div className="text-sm font-black tracking-tight">{c}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Selected Coach Detailed Information */}
+              {selectedCoach && (
+                <div className="bg-[#0F172A] p-3 rounded-xl border border-[#24354E] mb-4 text-xs font-bold text-gray-200 animate-in fade-in">
+                  <div className="text-emerald-400 font-extrabold text-sm mb-1">
+                    Coach {selectedCoach} - {getCoachStyle(selectedCoach).label}
+                  </div>
+                  <div className="text-[11px] text-gray-400">
+                    Platform Position: Standard Broad Gauge Passenger Arrangement.
+                  </div>
+                </div>
+              )}
+
+              {/* Legend Badges */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[10px] font-bold text-gray-300 mb-4">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
+                  <span>Sleeper (SL)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-cyan-500"></span>
+                  <span>AC 3 Tier (3A)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-purple-500"></span>
+                  <span>AC 2 Tier (2A)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-amber-500"></span>
+                  <span>General (GS)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-orange-600"></span>
+                  <span>Pantry Car (PC)</span>
                 </div>
               </div>
 
               <button
                 onClick={() => setShowCoachModal(false)}
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-colors"
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl text-xs transition-all shadow"
               >
-                Close
+                Close Coach Guide
               </button>
             </div>
           </div>
