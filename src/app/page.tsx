@@ -7,7 +7,7 @@ import ResultsSection from '@/components/ResultsSection';
 import LiveLogs from '@/components/LiveLogs';
 import RouteCard from '@/components/RouteCard';
 import LiveTrainModal from '@/components/LiveTrainModal';
-import { Train, Heart, X } from 'lucide-react';
+import { Train, Heart, X, Trash2 } from 'lucide-react';
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
@@ -20,8 +20,31 @@ export default function Home() {
   const [wishlistItems, setWishlistItems] = useState<any[]>([]);
   const [savedFullRoutes, setSavedFullRoutes] = useState<Route[]>([]);
   const [selectedSavedRoute, setSelectedSavedRoute] = useState<Route | null>(null);
+  const [selectedLiveTrain, setSelectedLiveTrain] = useState<{ trainNumber: string; trainName: string } | null>(null);
   const [globalFaresCache, setGlobalFaresCache] = useState<Record<string, { data: any[], updatedAt: string, originCode?: string, originName?: string }>>({});
   const [fetchingLegs, setFetchingLegs] = useState<Set<string>>(new Set());
+
+  const removeSavedRoute = (routeId: string) => {
+    try {
+      const savedRoutes = localStorage.getItem('saved_wishlist_full_routes');
+      let list = savedRoutes ? JSON.parse(savedRoutes) : [];
+      list = list.filter((r: any) => r.id !== routeId);
+      localStorage.setItem('saved_wishlist_full_routes', JSON.stringify(list));
+      setSavedFullRoutes(list);
+      window.dispatchEvent(new Event('storage'));
+    } catch (e) {}
+  };
+
+  const removeSavedTrain = (trainNo: string) => {
+    try {
+      const saved = localStorage.getItem('saved_wishlist_trains');
+      let list = saved ? JSON.parse(saved) : [];
+      list = list.filter((item: any) => (typeof item === 'string' ? item !== trainNo : item.trainNumber !== trainNo));
+      localStorage.setItem('saved_wishlist_trains', JSON.stringify(list));
+      setWishlistItems(list);
+      window.dispatchEvent(new Event('storage'));
+    } catch (e) {}
+  };
 
   // ── Mobile Single Back Navigation Fix (Page Level) ─────────────────────
   useEffect(() => {
@@ -100,8 +123,6 @@ export default function Home() {
     }
   };
 
-  const [selectedLiveTrain, setSelectedLiveTrain] = useState<{ trainNumber: string; trainName: string } | null>(null);
-
   return (
     <div className="min-h-screen bg-[var(--color-brand-navy)] pb-10">
       {/* ── Top Nav (How2Go) ─────────────────────────────────────── */}
@@ -161,32 +182,55 @@ export default function Home() {
                     const routeName = route.legs.map(l => `${l.trainNumber} ${l.trainName}`).join(' ➔ ');
 
                     return (
-                      <div key={`route-${idx}`} className="p-3.5 bg-[#121927] border border-[#2B3D5E] rounded-xl flex items-center justify-between shadow-md">
+                      <div key={`route-${idx}`} className="p-3.5 bg-[#121927] border border-[#2B3D5E] rounded-xl flex items-center justify-between shadow-md gap-2">
                         <div className="flex-1 pr-2">
                           <div className="flex items-center gap-2 mb-1">
                             <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded ${route.type === 'direct' ? 'bg-green-600 text-white' : 'bg-purple-600 text-white'}`}>
                               {route.type === 'direct' ? 'DIRECT' : 'CONNECTING'}
                             </span>
-                            <span className="font-extrabold text-xs text-white truncate max-w-[220px]">{routeName}</span>
+                            <span className="font-extrabold text-xs text-white truncate max-w-[180px]">{routeName}</span>
                           </div>
                           <div className="text-xs text-gray-300 font-bold">
                             {firstLeg.fromStation.code} ({firstLeg.departureTime}) ➔ {lastLeg.toStation.code} ({lastLeg.arrivalTime})
                           </div>
                         </div>
-                        <button
-                          onClick={() => {
-                            setSelectedSavedRoute(route);
-                            setShowWishlistModal(false);
-                          }}
-                          className="px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white font-extrabold text-xs rounded-xl shadow transition-all active:scale-95"
-                        >
-                          View Route
-                        </button>
+
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <button
+                            onClick={() => {
+                              handleSearch(firstLeg.fromStation.code, lastLeg.toStation.code, searchedDate || new Date().toISOString().split('T')[0]);
+                              setShowWishlistModal(false);
+                            }}
+                            className="px-2.5 py-1.5 bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs rounded-xl shadow transition-all active:scale-95"
+                            title="Search Route Results"
+                          >
+                            Search Route
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setSelectedSavedRoute(route);
+                              setShowWishlistModal(false);
+                            }}
+                            className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow transition-all active:scale-95"
+                            title="View Saved Card"
+                          >
+                            View Card
+                          </button>
+
+                          <button
+                            onClick={() => removeSavedRoute(route.id)}
+                            className="p-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/40 text-red-400 hover:text-red-300 transition-colors"
+                            title="Remove from Wishlist"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
 
-                  {/* Saved Trains */}
+                  {/* Saved Live Status Trains */}
                   {wishlistItems.map((item: any, idx: number) => {
                     const tNo = typeof item === 'string' ? item : item.trainNumber;
                     const tName = typeof item === 'string' ? (item === '20423' ? 'Patalkot Express' : 'Rewa Express') : (item.trainName || 'Saved Train');
@@ -194,20 +238,31 @@ export default function Home() {
                     const tCode = typeof item === 'object' && item.toCode ? item.toCode : (tNo === '20423' ? 'BPL' : 'REWA');
 
                     return (
-                      <div key={`item-${idx}`} className="p-3 bg-[#121927] border border-[#253652] rounded-xl flex items-center justify-between">
-                        <div>
+                      <div key={`item-${idx}`} className="p-3 bg-[#121927] border border-[#253652] rounded-xl flex items-center justify-between gap-2">
+                        <div className="flex-1 pr-2">
                           <div className="font-extrabold text-sm text-white">{tNo} - {tName}</div>
                           <div className="text-xs text-gray-400 font-semibold">{fCode} ➔ {tCode}</div>
                         </div>
-                        <button
-                          onClick={() => {
-                            setSelectedLiveTrain({ trainNumber: tNo, trainName: tName });
-                            setShowWishlistModal(false);
-                          }}
-                          className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:opacity-90 text-white font-extrabold text-xs rounded-xl shadow transition-all active:scale-95"
-                        >
-                          Live Status
-                        </button>
+
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <button
+                            onClick={() => {
+                              setSelectedLiveTrain({ trainNumber: tNo, trainName: tName });
+                              setShowWishlistModal(false);
+                            }}
+                            className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:opacity-90 text-white font-extrabold text-xs rounded-xl shadow transition-all active:scale-95"
+                          >
+                            Live Status
+                          </button>
+
+                          <button
+                            onClick={() => removeSavedTrain(tNo)}
+                            className="p-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/40 text-red-400 hover:text-red-300 transition-colors"
+                            title="Remove from Wishlist"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
