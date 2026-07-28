@@ -687,18 +687,18 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5 w-full">
                 <button
                   onClick={() => setExpanded(!expanded)}
-                  className="flex-1 py-3 flex items-center justify-center gap-2 text-xs font-bold tracking-[0.1em] text-[var(--color-brand-blue)] border border-[#2A3B54] rounded-lg bg-[#111A2D]"
+                  className="flex-1 h-11 flex items-center justify-center gap-2 text-xs font-black tracking-[0.1em] text-[var(--color-brand-blue)] border border-[#2A3B54] rounded-xl bg-[#111A2D] hover:bg-[#1A2844] transition-all"
                 >
-                  ROUTE DETAILS {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  <span>ROUTE DETAILS</span>
+                  {expanded ? <ChevronUp className="w-4 h-4 text-[var(--color-brand-blue)]" /> : <ChevronDown className="w-4 h-4 text-[var(--color-brand-blue)]" />}
                 </button>
 
-                {/* Compact Heart Box Next To ROUTE DETAILS */}
                 <button
                   onClick={toggleFullRouteWishlist}
-                  className="p-3 rounded-lg bg-[#111A2D] hover:bg-[#203254] border border-[#2A3B54] transition-all active:scale-95 flex items-center justify-center shadow"
+                  className="w-11 h-11 flex-shrink-0 rounded-xl bg-[#111A2D] hover:bg-[#1A2844] border border-[#2A3B54] transition-all active:scale-95 flex items-center justify-center shadow"
                   title="Save Route to Wishlist"
                 >
                   <Heart className={`w-5 h-5 transition-colors ${
@@ -861,7 +861,7 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
             );
           })()}
 
-          {/* Duration + Check Seats Button + Details button */}
+          {/* Duration + Check Seats Button + Details & Heart button */}
           <div className="flex items-center justify-between mt-[-10px] gap-2 flex-wrap">
             <div className="flex items-center gap-2 text-[15px] font-bold text-white">
               <Clock className="w-4 h-4 text-gray-100" />
@@ -880,7 +880,7 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
                       await handleManualRefresh();
                     }
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] md:text-[13px] font-extrabold text-white bg-green-600 hover:bg-green-500 rounded-lg shadow-sm transition-transform active:scale-95 animate-pulse"
+                  className="flex items-center gap-1.5 px-3 h-10 text-[12px] md:text-[13px] font-extrabold text-white bg-green-600 hover:bg-green-500 rounded-xl shadow-sm transition-transform active:scale-95 animate-pulse"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   Check Seats & Fare
@@ -888,30 +888,29 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
               )}
 
               {(isAnyFetching || isRefreshing) && (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                <div className="flex items-center gap-1.5 px-3 h-10 text-[12px] font-bold text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin text-yellow-400" />
                   Loading Seats...
                 </div>
               )}
 
-              {/* Compact Heart Box next to DETAILS in Desktop View */}
+              <button
+                onClick={() => setExpanded(!expanded)}
+                className="px-4 h-10 flex items-center gap-1.5 text-[13px] font-extrabold text-[var(--color-brand-blue)] border border-[#3A506B] rounded-xl bg-[#111A2D] hover:bg-[#1A2844] transition-colors"
+              >
+                DETAILS {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+
               <button
                 onClick={toggleFullRouteWishlist}
-                className="p-1.5 rounded-lg bg-[#111A2D] hover:bg-[#203254] border border-[#3A506B] transition-all active:scale-95 flex items-center justify-center shadow"
+                className="w-10 h-10 rounded-xl bg-[#111A2D] hover:bg-[#1A2844] border border-[#3A506B] transition-all active:scale-95 flex items-center justify-center shadow"
                 title="Save Route to Wishlist"
               >
-                <Heart className={`w-4 h-4 transition-colors ${
+                <Heart className={`w-4.5 h-4.5 transition-colors ${
                   isWishlisted
                     ? 'text-pink-500 fill-pink-500 shadow-[0_0_12px_rgba(236,72,153,0.8)]'
                     : 'text-gray-400 hover:text-pink-400'
                 }`} />
-              </button>
-
-              <button
-                onClick={() => setExpanded(!expanded)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-bold text-[var(--color-brand-blue)] border border-[var(--color-brand-blue)] rounded-lg hover:bg-[#3A506B]/50 transition-colors"
-              >
-                DETAILS {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
             </div>
           </div>
