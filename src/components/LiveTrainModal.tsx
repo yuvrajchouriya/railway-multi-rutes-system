@@ -90,6 +90,34 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
       }
 
       setData(json.data);
+
+      // ── Auto-Detect Live Train Location & Auto-Expand Sub-Station Section ──
+      if (json.data && json.data.route) {
+        let cSeq = json.data.currentLocation?.sequence;
+        if (!cSeq && json.data.currentLocation?.stationCode) {
+          const match = json.data.route.find((s: any) => s.stationCode === json.data.currentLocation.stationCode);
+          if (match) cSeq = match.sequence;
+        }
+        if (!cSeq) cSeq = 1; // Fallback to 1st station so train is ALWAYS visible
+
+        let currentSectionId = 0;
+        let activeSectionId = 1;
+        json.data.route.forEach((stn: any) => {
+          if (stn.isHalt) {
+            currentSectionId++;
+          }
+          if (stn.sequence === cSeq || (json.data.currentLocation?.stationCode && stn.stationCode === json.data.currentLocation.stationCode)) {
+            activeSectionId = currentSectionId;
+          }
+        });
+
+        // Auto-expand section containing the train so train is NEVER hidden!
+        setExpandedSections(prev => {
+          const next = new Set(prev);
+          next.add(activeSectionId);
+          return next;
+        });
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load live status');
     } finally {
@@ -152,7 +180,14 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     return expandedSections.has(stn.sectionId);
   });
 
-  const currentSeq = data?.currentLocation?.sequence || 1;
+  // Calculate current sequence for train icon matching
+  let currentSeq = data?.currentLocation?.sequence;
+  if (!currentSeq && data?.route && data?.currentLocation?.stationCode) {
+    const match = data.route.find((s: any) => s.stationCode === data.currentLocation.stationCode);
+    if (match) currentSeq = match.sequence;
+  }
+  if (!currentSeq) currentSeq = 1; // Guaranteed fallback so train is ALWAYS shown
+
   const routeList = data?.route || [];
   const nextHalt = routeList.find((s: any) => s.sequence > currentSeq && s.isHalt) || routeList[routeList.length - 1];
   const lastHalt = routeList[routeList.length - 1];
@@ -278,7 +313,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           <div className="w-20 text-right uppercase text-gray-400 tracking-wider">Departure</div>
         </div>
 
-        {/* ── Main Scrollable Timeline (100% CONTINUOUS UNBROKEN OVERLAPPING STEEL RAILS TRACK) ── */}
+        {/* ── Main Scrollable Timeline (100% ALWAYS VISIBLE LIVE TRAIN BADGE & STEEL RAILS) ── */}
         <div className="flex-1 overflow-y-auto bg-[#0B0F17] px-0 py-0 relative z-10">
 
           {loading && (
@@ -304,7 +339,9 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
               {/* Station Rows */}
               <div className="flex flex-col relative z-10 overflow-hidden">
                 {visibleRoute.map((stn: any, idx: number) => {
-                  const isCurrentLoc = data.currentLocation?.stationCode === stn.stationCode || data.currentLocation?.sequence === stn.sequence;
+                  // Guaranteed live train badge detection (by sequence or stationCode)
+                  const isCurrentLoc = (stn.sequence === currentSeq) || 
+                                       (data?.currentLocation?.stationCode && stn.stationCode === data.currentLocation.stationCode);
                   const isHalt = stn.isHalt !== false;
 
                   const formatTime = (t?: string) => {
@@ -327,8 +364,8 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                       onClick={() => toggleSection(stn.sectionId)}
                       className={`relative flex items-center justify-between py-3.5 px-3 transition-colors cursor-pointer ${
                         isHalt
-                          ? 'bg-[#0B0F17]' // Main Halt Station: Pitch Black Background (Exact WIMT 2nd Image Style!)
-                          : 'bg-[#2B384B]' // Sub-Station: Continuous Slate Blue-Grey Band (NO BORDER LINES TO BREAK TRACK!)
+                          ? 'bg-[#0B0F17]' // Main Halt Station: Pitch Black Background
+                          : 'bg-[#2B384B]' // Sub-Station: Continuous Slate Blue-Grey Band
                       }`}
                     >
                       {/* Left: Scheduled & Actual Arrival */}
@@ -347,9 +384,9 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                       <div className="relative w-12 flex-shrink-0 flex items-center justify-center min-h-[56px] z-20">
                         {/* Continuous Steel Rails (-top-6 to -bottom-6 OVERLAPPING FOR ZERO GAPS!) */}
                         <div className="absolute -top-6 -bottom-6 w-5 flex justify-center pointer-events-none z-0">
-                          {/* Left Continuous Steel Rail */}
+                          {/* Left Steel Rail */}
                           <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_10px_rgba(6,182,212,1)]"></div>
-                          {/* Right Continuous Steel Rail */}
+                          {/* Right Steel Rail */}
                           <div className="absolute right-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_10px_rgba(6,182,212,1)]"></div>
                           {/* Sleepers */}
                           <div
@@ -361,13 +398,13 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                           ></div>
                         </div>
 
-                        {/* Station Dot / Badge (Centered exactly on top of the rails!) */}
+                        {/* Station Dot / Live Train Badge (GUARANTEED ALWAYS PRESENT AT ALL TIMES!) */}
                         {isCurrentLoc ? (
                           <div className="relative flex items-center justify-center z-30">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-400 via-blue-500 to-purple-600 border-2 border-white shadow-[0_0_15px_rgba(6,182,212,1)] flex items-center justify-center animate-bounce">
-                              <Train className="w-4.5 h-4.5 text-white" />
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-400 via-blue-500 to-purple-600 border-2 border-white shadow-[0_0_18px_rgba(6,182,212,1)] flex items-center justify-center animate-bounce">
+                              <Train className="w-5 h-5 text-white" />
                             </div>
-                            <div className="absolute inset-0 rounded-full bg-cyan-400/50 animate-ping"></div>
+                            <div className="absolute inset-0 rounded-full bg-cyan-400/60 animate-ping z-20"></div>
                           </div>
                         ) : isHalt ? (
                           <div className="w-4 h-4 rounded-full border-2 border-white bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,1)] z-30"></div>
@@ -451,7 +488,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           </div>
         )}
 
-        {/* ── 2nd Image Feature: Detailed Status Bottom Drawer / Card ─────────────────── */}
+        {/* ── Detailed Status Bottom Drawer / Card ─────────────────── */}
         {data && (
           <div className="bg-[#162030] border-t border-[#263752] p-3 flex flex-col shadow-2xl relative z-30">
             <div
