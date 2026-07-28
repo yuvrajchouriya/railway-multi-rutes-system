@@ -348,6 +348,37 @@ function LegCard({ leg, showDivider = false, liveClasses }: { leg: TrainLeg; sho
 export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGlobalFaresCache, activeFilter, onFetchFares }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(false);
+
+  useEffect(() => {
+    try {
+      const savedRoutes = localStorage.getItem('saved_wishlist_full_routes');
+      if (savedRoutes) {
+        const list: Route[] = JSON.parse(savedRoutes);
+        const exists = list.some(r => r.id === route.id || (r.legs.length === route.legs.length && r.legs.every((l, i) => l.trainNumber === route.legs[i].trainNumber)));
+        if (exists) setIsWishlisted(true);
+      }
+    } catch (e) {}
+  }, [route.id, route.legs]);
+
+  const toggleFullRouteWishlist = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const savedRoutes = localStorage.getItem('saved_wishlist_full_routes');
+      let list: Route[] = savedRoutes ? JSON.parse(savedRoutes) : [];
+      const exists = list.some(r => r.id === route.id || (r.legs.length === route.legs.length && r.legs.every((l, i) => l.trainNumber === route.legs[i].trainNumber)));
+      
+      if (exists) {
+        list = list.filter(r => r.id !== route.id && !(r.legs.length === route.legs.length && r.legs.every((l, i) => l.trainNumber === route.legs[i].trainNumber)));
+        setIsWishlisted(false);
+      } else {
+        list.push(route);
+        setIsWishlisted(true);
+      }
+      localStorage.setItem('saved_wishlist_full_routes', JSON.stringify(list));
+      window.dispatchEvent(new Event('storage'));
+    } catch (e) {}
+  };
 
   const classOrder = ['UR', '2S', 'SL', 'CC', 'FC', '3E', '3A', '2A', '1A'];
 
@@ -605,16 +636,33 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
 
           return (
             <div className="block md:hidden">
-              {/* Tags (Mobile) */}
-              <div className="flex items-center gap-2 flex-wrap mb-3">
-                {displayTags.slice(0, 3).map(tag => {
-                  const cfg = TAG_CONFIG[tag as keyof typeof TAG_CONFIG];
-                  return cfg ? (
-                    <span key={tag} className={`text-[10px] font-bold px-2 py-0.5 rounded-sm border ${cfg.bg}`}>
-                      {cfg.label}
-                    </span>
-                  ) : null;
-                })}
+              {/* Tags & Wishlist Heart Button (Mobile) */}
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {displayTags.slice(0, 3).map(tag => {
+                    const cfg = TAG_CONFIG[tag as keyof typeof TAG_CONFIG];
+                    return cfg ? (
+                      <span key={tag} className={`text-[10px] font-bold px-2 py-0.5 rounded-sm border ${cfg.bg}`}>
+                        {cfg.label}
+                      </span>
+                    ) : null;
+                  })}
+                </div>
+
+                <button
+                  onClick={toggleFullRouteWishlist}
+                  className="px-2.5 py-1 rounded-xl bg-[#203254] hover:bg-[#2A426E] border border-pink-500/40 transition-all active:scale-95 flex items-center gap-1.5 shadow"
+                  title="Save Full Route to Wishlist"
+                >
+                  <Heart className={`w-4 h-4 transition-colors ${
+                    isWishlisted
+                      ? 'text-pink-500 fill-pink-500 shadow-[0_0_12px_rgba(236,72,153,0.8)]'
+                      : 'text-gray-400 hover:text-pink-400'
+                  }`} />
+                  <span className="text-[10px] font-extrabold text-gray-200">
+                    {isWishlisted ? 'Saved' : 'Save Route'}
+                  </span>
+                </button>
               </div>
 
               <div className="flex justify-between items-end mb-1">
@@ -680,13 +728,26 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
             })}
           </div>
 
-          {/* Title */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="w-24"></div> {/* spacer for centering */}
+          {/* Title with Pink Heart Wishlist Button */}
+          <div className="flex items-center justify-between mb-6 gap-3">
+            <button
+              onClick={toggleFullRouteWishlist}
+              className="px-3 py-1.5 rounded-xl bg-[#203254] hover:bg-[#2A426E] border border-pink-500/40 transition-all active:scale-95 flex items-center gap-1.5 shadow"
+              title="Save Full Route to Wishlist"
+            >
+              <Heart className={`w-5 h-5 transition-colors ${
+                isWishlisted
+                  ? 'text-pink-500 fill-pink-500 shadow-[0_0_12px_rgba(236,72,153,0.8)]'
+                  : 'text-gray-400 hover:text-pink-400'
+              }`} />
+              <span className="text-xs font-black text-gray-200">
+                {isWishlisted ? 'Saved Route' : 'Save Full Route'}
+              </span>
+            </button>
             
             <h3 className="text-[17px] font-black text-white text-center flex-1">{headline}</h3>
             
-            <div className="text-right w-24">
+            <div className="text-right">
               {calculatedFare > 0 && !isAnyFetching && (
                 <div className="text-[17px] font-black text-white">
                   <span className="text-[12px] text-gray-400 font-medium mr-1">from</span>
