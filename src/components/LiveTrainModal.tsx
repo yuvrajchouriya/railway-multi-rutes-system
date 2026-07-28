@@ -259,7 +259,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           <div className="w-16 sm:w-20 text-right uppercase text-gray-400 tracking-wider">Departure</div>
         </div>
 
-        {/* ── Main Scrollable Timeline with VIBRANT UNBROKEN TRACK (NO DIVIDER LINES!) ───────────────────────────── */}
+        {/* ── Main Scrollable Timeline with VIBRANT UNBROKEN TRACK ───────────────────────────── */}
         <div className="flex-1 overflow-y-auto bg-[#0D121B] px-0 py-0 relative z-10">
 
           {loading && (
@@ -282,17 +282,17 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           {!loading && !error && data?.route && (
             <div className="relative min-h-full">
               
-              {/* ── 100% CONTINUOUS UNBROKEN VIBRANT TRACK LADDER (NO PARTITION BORDER CUTS!) ── */}
-              <div className="absolute left-[78px] sm:left-[98px] top-0 bottom-0 w-6 z-0 pointer-events-none flex justify-center">
-                {/* Left Steel Rail (Book Now Rich Gradient: Blue/Indigo/Purple + Cyan Glow) */}
-                <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-blue-500 via-indigo-500 to-purple-600 shadow-[0_0_10px_rgba(59,130,246,0.9)]"></div>
-                {/* Right Steel Rail (Book Now Rich Gradient: Blue/Indigo/Purple + Cyan Glow) */}
-                <div className="absolute right-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-blue-500 via-indigo-500 to-purple-600 shadow-[0_0_10px_rgba(59,130,246,0.9)]"></div>
+              {/* ── 100% CONTINUOUS UNBROKEN VIBRANT TRACK LADDER (EXACT SAME BRIGHTNESS ACROSS ALL STATIONS!) ── */}
+              <div className="absolute left-[84px] sm:left-[108px] top-0 bottom-0 w-6 z-0 pointer-events-none flex justify-center">
+                {/* Left Steel Rail (Vibrant Metallic Cyan/Blue/Purple Gradient + Glowing Shadow) */}
+                <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_12px_rgba(6,182,212,1)]"></div>
+                {/* Right Steel Rail (Vibrant Metallic Cyan/Blue/Purple Gradient + Glowing Shadow) */}
+                <div className="absolute right-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_12px_rgba(6,182,212,1)]"></div>
                 {/* Metallic Sleepers / Cross-ties */}
                 <div
-                  className="absolute left-0 right-0 top-0 bottom-0 opacity-50 z-0"
+                  className="absolute left-0 right-0 top-0 bottom-0 opacity-60 z-0"
                   style={{
-                    backgroundImage: 'linear-gradient(to bottom, #94a3b8 2px, transparent 2px)',
+                    backgroundImage: 'linear-gradient(to bottom, #cbd5e1 2px, transparent 2px)',
                     backgroundSize: '100% 12px'
                   }}
                 ></div>
@@ -323,14 +323,12 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                     <div
                       key={stn.stationCode || idx}
                       onClick={() => toggleSection(stn.sectionId)}
-                      className={`relative flex items-center justify-between py-3.5 px-3 transition-colors cursor-pointer ${
-                        isHalt
-                          ? 'bg-[#111824]/90' // Major Halt Station: Deep Dark Card Theme
-                          : 'bg-[#162132]/45 text-gray-400 hover:bg-[#1A283D]' // Sub-station: Muted Light Card Theme
-                      }`}
+                      className="relative flex items-center justify-between py-3.5 px-3 transition-colors cursor-pointer"
                     >
                       {/* Left: Scheduled & Actual Arrival */}
-                      <div className="w-16 sm:w-20 text-left flex flex-col justify-center flex-shrink-0 z-10">
+                      <div className={`w-16 sm:w-20 text-left flex flex-col justify-center flex-shrink-0 z-10 p-1.5 rounded-xl ${
+                        isHalt ? 'bg-[#111824]/90 border border-[#23334B]' : 'bg-[#162132]/40'
+                      }`}>
                         <span className={`text-xs sm:text-sm font-bold ${isHalt ? 'text-gray-200' : 'text-gray-400'}`}>
                           {schArr !== '--' ? schArr : schDep}
                         </span>
@@ -341,20 +339,20 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                         )}
                       </div>
 
-                      {/* Track Center Column (CLEAR & UNBROKEN - NO DIVIDER LINES CUTTING ACROSS!) */}
-                      <div className="relative flex items-center justify-center w-6 sm:w-10 flex-shrink-0 z-20">
+                      {/* 100% TRANSPARENT Track Center Column (Track Behind is 100% Unbroken & Unblurred!) */}
+                      <div className="relative flex items-center justify-center w-8 sm:w-12 flex-shrink-0 z-20 bg-transparent">
                         {isCurrentLoc ? (
                           /* LIVE RUNNING TRAIN BADGE (DEAD CENTER inside Track) */
                           <div className="relative flex items-center justify-center">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 border-2 border-white shadow-[0_0_15px_rgba(6,182,212,0.9)] flex items-center justify-center animate-bounce z-20">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 via-blue-600 to-purple-600 border-2 border-white shadow-[0_0_15px_rgba(6,182,212,1)] flex items-center justify-center animate-bounce z-20">
                               <Train className="w-4.5 h-4.5 text-white" />
                             </div>
-                            <div className="absolute inset-0 rounded-full bg-cyan-400/40 animate-ping z-10"></div>
+                            <div className="absolute inset-0 rounded-full bg-cyan-400/50 animate-ping z-10"></div>
                           </div>
                         ) : isHalt ? (
                           /* Major Halt Station Circle (DEAD CENTER inside Track) */
-                          <div className={`w-3.5 h-3.5 rounded-full border-2 border-[#121824] shadow-md ${
-                            isPassed ? 'bg-cyan-400' : 'bg-[#2E4566]'
+                          <div className={`w-4 h-4 rounded-full border-2 border-[#121824] shadow-md ${
+                            isPassed ? 'bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]' : 'bg-[#2E4566]'
                           }`}></div>
                         ) : (
                           /* Sub-Station Cyan Dot (DEAD CENTER inside Track) */
@@ -365,7 +363,9 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                       </div>
 
                       {/* Middle: Station Name, Distance & Clean Platform Badge */}
-                      <div className="flex-1 min-w-0 px-3 z-10 border-b border-[#1C2A40]/80 py-1">
+                      <div className={`flex-1 min-w-0 px-3 z-10 p-2 rounded-xl border ${
+                        isHalt ? 'bg-[#111824]/90 border-[#23334B]' : 'bg-[#162132]/40 border-[#1D2B42]/50'
+                      }`}>
                         <div className={`text-sm sm:text-base font-extrabold truncate ${isHalt ? 'text-white' : 'text-gray-300 font-semibold'}`}>
                           {stn.stationName}
                         </div>
@@ -380,7 +380,9 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                       </div>
 
                       {/* Right: Scheduled & Actual Departure */}
-                      <div className="w-16 sm:w-20 text-right flex flex-col justify-center flex-shrink-0 z-10">
+                      <div className={`w-16 sm:w-20 text-right flex flex-col justify-center flex-shrink-0 z-10 p-1.5 rounded-xl ${
+                        isHalt ? 'bg-[#111824]/90 border border-[#23334B]' : 'bg-[#162132]/40'
+                      }`}>
                         <span className={`text-xs sm:text-sm font-bold ${isHalt ? 'text-gray-200' : 'text-gray-400'}`}>
                           {schDep}
                         </span>
