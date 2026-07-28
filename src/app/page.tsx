@@ -5,6 +5,7 @@ import { Route } from '@/types/railway';
 import SearchForm from '@/components/SearchForm';
 import ResultsSection from '@/components/ResultsSection';
 import LiveLogs from '@/components/LiveLogs';
+import RouteCard from '@/components/RouteCard';
 import { Train, Heart, X } from 'lucide-react';
 
 export default function Home() {
@@ -15,7 +16,11 @@ export default function Home() {
   const [searchedTo, setSearchedTo] = useState('');
   const [searchedDate, setSearchedDate] = useState('');
   const [showWishlistModal, setShowWishlistModal] = useState(false);
-  const [wishlistItems, setWishlistItems] = useState<string[]>([]);
+  const [wishlistItems, setWishlistItems] = useState<any[]>([]);
+  const [savedFullRoutes, setSavedFullRoutes] = useState<Route[]>([]);
+  const [selectedSavedRoute, setSelectedSavedRoute] = useState<Route | null>(null);
+  const [globalFaresCache, setGlobalFaresCache] = useState<Record<string, { data: any[], updatedAt: string, originCode?: string, originName?: string }>>({});
+  const [fetchingLegs, setFetchingLegs] = useState<Set<string>>(new Set());
 
   // ── Mobile Single Back Navigation Fix (Page Level) ─────────────────────
   useEffect(() => {
@@ -113,10 +118,10 @@ export default function Home() {
             onClick={() => {
               try {
                 const saved = localStorage.getItem('saved_wishlist_trains');
-                setWishlistItems(saved ? JSON.parse(saved) : ['20423', '11755']);
-              } catch (e) {
-                setWishlistItems(['20423', '11755']);
-              }
+                const savedRoutes = localStorage.getItem('saved_wishlist_full_routes');
+                setWishlistItems(saved ? JSON.parse(saved) : []);
+                setSavedFullRoutes(savedRoutes ? JSON.parse(savedRoutes) : []);
+              } catch (e) {}
               setShowWishlistModal(true);
             }}
             className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#1e2a44] border border-[#3A506B] hover:border-pink-500/50 text-white text-xs font-bold transition-all shadow-md active:scale-95"
@@ -127,48 +132,83 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* ── Wishlist Saved Trains Modal ─────────────────────────────── */}
+      {/* ── Wishlist Saved Routes Modal ─────────────────────────────── */}
       {showWishlistModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-[#1A253A] border border-[#2F4264] rounded-2xl p-5 max-w-md w-full shadow-2xl text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-[#1A253A] border border-[#2F4264] rounded-2xl p-5 max-w-lg w-full shadow-2xl text-white">
             <div className="flex items-center justify-between pb-3 border-b border-[#2C3E5E] mb-4">
               <h3 className="text-base font-black flex items-center gap-2">
                 <Heart className="w-5 h-5 text-pink-500 fill-pink-500" />
-                <span>Saved Wishlist Trains ({wishlistItems.length})</span>
+                <span>Wishlist Saved Routes ({savedFullRoutes.length + wishlistItems.length})</span>
               </h3>
               <button onClick={() => setShowWishlistModal(false)} className="p-1 rounded-full hover:bg-white/10 text-gray-300">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-1 mb-4">
-              {wishlistItems.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">No saved trains in your wishlist yet.</p>
+            <div className="space-y-3 max-h-80 overflow-y-auto pr-1 mb-4">
+              {savedFullRoutes.length === 0 && wishlistItems.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-6">No saved routes in your wishlist yet. Click the Heart icon on any route card to save!</p>
               ) : (
-                wishlistItems.map((item: any, idx) => {
-                  const tNo = typeof item === 'string' ? item : item.trainNumber;
-                  const tName = typeof item === 'string' ? (item === '20423' ? 'Patalkot Express' : 'Rewa Express') : (item.trainName || 'Saved Train');
-                  const fCode = typeof item === 'object' && item.fromCode ? item.fromCode : (tNo === '20423' ? 'CWA' : 'NITR');
-                  const tCode = typeof item === 'object' && item.toCode ? item.toCode : (tNo === '20423' ? 'BPL' : 'REWA');
+                <>
+                  {/* Saved Full Routes (Direct & Connecting Combinations) */}
+                  {savedFullRoutes.map((route: Route, idx: number) => {
+                    const firstLeg = route.legs[0];
+                    const lastLeg = route.legs[route.legs.length - 1];
+                    const routeName = route.legs.map(l => `${l.trainNumber} ${l.trainName}`).join(' ➔ ');
 
-                  return (
-                    <div key={idx} className="p-3 bg-[#121927] border border-[#253652] rounded-xl flex items-center justify-between">
-                      <div>
-                        <div className="font-extrabold text-sm text-white">{tNo} - {tName}</div>
-                        <div className="text-xs text-gray-400 font-semibold">{fCode} ➔ {tCode}</div>
+                    return (
+                      <div key={`route-${idx}`} className="p-3.5 bg-[#121927] border border-[#2B3D5E] rounded-xl flex items-center justify-between shadow-md">
+                        <div className="flex-1 pr-2">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded ${route.type === 'direct' ? 'bg-green-600 text-white' : 'bg-purple-600 text-white'}`}>
+                              {route.type === 'direct' ? 'DIRECT' : 'CONNECTING'}
+                            </span>
+                            <span className="font-extrabold text-xs text-white truncate max-w-[220px]">{routeName}</span>
+                          </div>
+                          <div className="text-xs text-gray-300 font-bold">
+                            {firstLeg.fromStation.code} ({firstLeg.departureTime}) ➔ {lastLeg.toStation.code} ({lastLeg.arrivalTime})
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setSelectedSavedRoute(route);
+                            setShowWishlistModal(false);
+                          }}
+                          className="px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white font-extrabold text-xs rounded-xl shadow transition-all active:scale-95"
+                        >
+                          View Route
+                        </button>
                       </div>
-                      <button
-                        onClick={() => {
-                          handleSearch(fCode, tCode, searchedDate || new Date().toISOString().split('T')[0]);
-                          setShowWishlistModal(false);
-                        }}
-                        className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white font-extrabold text-xs rounded-lg shadow"
-                      >
-                        View
-                      </button>
-                    </div>
-                  );
-                })
+                    );
+                  })}
+
+                  {/* Legacy Saved Trains */}
+                  {wishlistItems.map((item: any, idx: number) => {
+                    const tNo = typeof item === 'string' ? item : item.trainNumber;
+                    const tName = typeof item === 'string' ? (item === '20423' ? 'Patalkot Express' : 'Rewa Express') : (item.trainName || 'Saved Train');
+                    const fCode = typeof item === 'object' && item.fromCode ? item.fromCode : (tNo === '20423' ? 'CWA' : 'NITR');
+                    const tCode = typeof item === 'object' && item.toCode ? item.toCode : (tNo === '20423' ? 'BPL' : 'REWA');
+
+                    return (
+                      <div key={`item-${idx}`} className="p-3 bg-[#121927] border border-[#253652] rounded-xl flex items-center justify-between">
+                        <div>
+                          <div className="font-extrabold text-sm text-white">{tNo} - {tName}</div>
+                          <div className="text-xs text-gray-400 font-semibold">{fCode} ➔ {tCode}</div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            handleSearch(fCode, tCode, searchedDate || new Date().toISOString().split('T')[0]);
+                            setShowWishlistModal(false);
+                          }}
+                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-lg shadow"
+                        >
+                          Search
+                        </button>
+                      </div>
+                    );
+                  })}
+                </>
               )}
             </div>
 
@@ -178,6 +218,32 @@ export default function Home() {
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Dedicated Saved Route Preview Modal (OPENS ONLY THIS EXACT ROUTE) ── */}
+      {selectedSavedRoute && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in">
+          <div className="bg-[#121824] border border-[#2A3C58] rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-white">
+            <div className="bg-[#1C2638] px-4 py-3 border-b border-[#2B3B56] flex items-center justify-between">
+              <h3 className="text-base font-black flex items-center gap-2">
+                <Heart className="w-5 h-5 text-pink-500 fill-pink-500" />
+                <span>Wishlist Saved Route Preview</span>
+              </h3>
+              <button onClick={() => setSelectedSavedRoute(null)} className="p-1 rounded-full hover:bg-white/10 text-gray-300">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              <RouteCard
+                route={selectedSavedRoute}
+                globalFaresCache={globalFaresCache}
+                fetchingLegs={fetchingLegs}
+                setGlobalFaresCache={setGlobalFaresCache}
+              />
+            </div>
           </div>
         </div>
       )}
