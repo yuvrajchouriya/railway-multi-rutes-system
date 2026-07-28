@@ -98,23 +98,23 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           const match = json.data.route.find((s: any) => s.stationCode === json.data.currentLocation.stationCode);
           if (match) cSeq = match.sequence;
         }
-        if (!cSeq) cSeq = 1; // Fallback to 1st station so train is ALWAYS visible
+        if (!cSeq) cSeq = 1;
 
-        let currentSectionId = 0;
-        let activeSectionId = 1;
+        let currentSec = 0;
+        let activeSec = 1;
         json.data.route.forEach((stn: any) => {
           if (stn.isHalt) {
-            currentSectionId++;
+            currentSec++;
           }
           if (stn.sequence === cSeq || (json.data.currentLocation?.stationCode && stn.stationCode === json.data.currentLocation.stationCode)) {
-            activeSectionId = currentSectionId;
+            activeSec = currentSec === 0 ? 1 : currentSec;
           }
         });
 
-        // Auto-expand section containing the train so train is NEVER hidden!
+        // Auto-expand section containing the live train
         setExpandedSections(prev => {
           const next = new Set(prev);
-          next.add(activeSectionId);
+          next.add(activeSec);
           return next;
         });
       }
@@ -167,26 +167,37 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     });
   };
 
-  let currentSectionId = 0;
+  // ── Precise Halt-to-Halt Section Id Assignment & Sub-station Counts ─────
+  let sectionCounter = 0;
+  const sectionCounts: Record<number, number> = {};
+
   const processedRoute = data?.route ? data.route.map((stn: any) => {
     if (stn.isHalt) {
-      currentSectionId++;
+      sectionCounter++;
+      sectionCounts[sectionCounter] = 0;
+    } else if (sectionCounter > 0) {
+      sectionCounts[sectionCounter] = (sectionCounts[sectionCounter] || 0) + 1;
     }
-    return { ...stn, sectionId: currentSectionId };
+    const secId = sectionCounter === 0 ? 1 : sectionCounter;
+    return { ...stn, sectionId: secId };
   }) : [];
 
-  const visibleRoute = processedRoute.filter((stn: any) => {
-    if (stn.isHalt) return true;
-    return expandedSections.has(stn.sectionId);
-  });
-
-  // Calculate current sequence for train icon matching
+  // Calculate current sequence for live train icon matching
   let currentSeq = data?.currentLocation?.sequence;
   if (!currentSeq && data?.route && data?.currentLocation?.stationCode) {
     const match = data.route.find((s: any) => s.stationCode === data.currentLocation.stationCode);
     if (match) currentSeq = match.sequence;
   }
-  if (!currentSeq) currentSeq = 1; // Guaranteed fallback so train is ALWAYS shown
+  if (!currentSeq) currentSeq = 1;
+
+  // 🌟 ALWAYS KEEP LIVE TRAIN STATION VISIBLE (Even if section is collapsed!)
+  const visibleRoute = processedRoute.filter((stn: any) => {
+    if (stn.isHalt) return true; // Halt stations always visible
+    const isCurrentLoc = (stn.sequence === currentSeq) || 
+                         (data?.currentLocation?.stationCode && stn.stationCode === data.currentLocation.stationCode);
+    if (isCurrentLoc) return true; // 🌟 LIVE TRAIN SUB-STATION IS GUARANTEED ALWAYS VISIBLE!
+    return expandedSections.has(stn.sectionId);
+  });
 
   const routeList = data?.route || [];
   const nextHalt = routeList.find((s: any) => s.sequence > currentSeq && s.isHalt) || routeList[routeList.length - 1];
@@ -313,7 +324,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           <div className="w-20 text-right uppercase text-gray-400 tracking-wider">Departure</div>
         </div>
 
-        {/* ── Main Scrollable Timeline (100% ALWAYS VISIBLE LIVE TRAIN BADGE & STEEL RAILS) ── */}
+        {/* ── Main Scrollable Timeline (GUARANTEED VISIBLE TRAIN ON STEEL RAILS) ── */}
         <div className="flex-1 overflow-y-auto bg-[#0B0F17] px-0 py-0 relative z-10">
 
           {loading && (
@@ -339,10 +350,11 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
               {/* Station Rows */}
               <div className="flex flex-col relative z-10 overflow-hidden">
                 {visibleRoute.map((stn: any, idx: number) => {
-                  // Guaranteed live train badge detection (by sequence or stationCode)
                   const isCurrentLoc = (stn.sequence === currentSeq) || 
                                        (data?.currentLocation?.stationCode && stn.stationCode === data.currentLocation.stationCode);
                   const isHalt = stn.isHalt !== false;
+                  const isExpanded = expandedSections.has(stn.sectionId);
+                  const subCount = sectionCounts[stn.sectionId] || 0;
 
                   const formatTime = (t?: string) => {
                     if (!t) return '--';
@@ -364,8 +376,8 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                       onClick={() => toggleSection(stn.sectionId)}
                       className={`relative flex items-center justify-between py-3.5 px-3 transition-colors cursor-pointer ${
                         isHalt
-                          ? 'bg-[#0B0F17]' // Main Halt Station: Pitch Black Background
-                          : 'bg-[#2B384B]' // Sub-Station: Continuous Slate Blue-Grey Band
+                          ? 'bg-[#0B0F17] hover:bg-[#121927]' // Main Halt Station: Pitch Black Background
+                          : 'bg-[#2B384B] hover:bg-[#34445A]' // Sub-Station: Continuous Slate Blue-Grey Band
                       }`}
                     >
                       {/* Left: Scheduled & Actual Arrival */}
@@ -398,7 +410,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                           ></div>
                         </div>
 
-                        {/* Station Dot / Live Train Badge (GUARANTEED ALWAYS PRESENT AT ALL TIMES!) */}
+                        {/* Station Dot / Live Train Badge (ALWAYS PRESENT & ANIMATED IF HERE!) */}
                         {isCurrentLoc ? (
                           <div className="relative flex items-center justify-center z-30">
                             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-400 via-blue-500 to-purple-600 border-2 border-white shadow-[0_0_18px_rgba(6,182,212,1)] flex items-center justify-center animate-bounce">
@@ -413,11 +425,22 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                         )}
                       </div>
 
-                      {/* Middle: Station Name & Platform */}
+                      {/* Middle: Station Name, Sub-station Expand Badge & Platform */}
                       <div className="flex-1 min-w-0 px-3 z-10">
-                        <div className={`text-sm sm:text-base truncate ${isHalt ? 'font-extrabold text-white' : 'font-bold text-slate-100'}`}>
-                          {stn.stationName}
+                        <div className="flex items-center gap-2">
+                          <span className={`text-sm sm:text-base truncate ${isHalt ? 'font-extrabold text-white' : 'font-bold text-slate-100'}`}>
+                            {stn.stationName}
+                          </span>
+                          
+                          {/* Intermediate Sub-stations Toggle Badge on Halt stations */}
+                          {isHalt && subCount > 0 && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 flex items-center gap-1 flex-shrink-0 shadow">
+                              <span>{subCount} sub-stns</span>
+                              {isExpanded ? <ChevronUp className="w-3 h-3 text-cyan-300" /> : <ChevronDown className="w-3 h-3 text-cyan-300" />}
+                            </span>
+                          )}
                         </div>
+
                         <div className="flex items-center gap-2 text-[11px] text-gray-400 mt-0.5 flex-wrap">
                           <span className={isHalt ? 'text-gray-300' : 'text-slate-300'}>{stn.distanceKm || stn.distance || 0} km</span>
                           {stn.platform && stn.platform !== '--' && (
