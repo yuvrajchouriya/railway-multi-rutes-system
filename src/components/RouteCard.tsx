@@ -8,7 +8,7 @@ import LiveTrainModal from './LiveTrainModal';
 import {
   ChevronDown, ChevronUp, Clock, Utensils,
   Train, ArrowRight, ExternalLink, Star,
-  Check, X, RefreshCw, Navigation
+  Check, X, RefreshCw, Navigation, Heart
 } from 'lucide-react';
 
 interface Props { 
@@ -87,16 +87,39 @@ function LegCard({ leg, showDivider = false, liveClasses }: { leg: TrainLeg; sho
 
   return (
     <div className={showDivider ? 'pt-4 border-t border-[#3A506B]' : ''}>
-      {/* Train header */}
+      {/* Train header with Wishlist Heart */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-3 gap-3 md:gap-0">
-        <div>
-          <span className="text-[15px] font-bold text-white">{leg.trainNumber}</span>
-          <span className="ml-2 text-[16px] font-bold text-white">{leg.trainName}</span>
-          {leg.hasPantry && (
-            <span className="ml-2 text-[13px] font-bold text-gray-100 flex-inline items-center gap-1">
-              <Utensils className="w-4 h-4 inline" /> Pantry
-            </span>
-          )}
+        <div className="flex items-center justify-between w-full md:w-auto">
+          <div>
+            <span className="text-[15px] font-bold text-white">{leg.trainNumber}</span>
+            <span className="ml-2 text-[16px] font-bold text-white">{leg.trainName}</span>
+            {leg.hasPantry && (
+              <span className="ml-2 text-[13px] font-bold text-gray-100 flex-inline items-center gap-1">
+                <Utensils className="w-4 h-4 inline" /> Pantry
+              </span>
+            )}
+          </div>
+
+          <button
+            onClick={() => {
+              try {
+                const saved = localStorage.getItem('saved_wishlist_trains');
+                let list = saved ? JSON.parse(saved) : [];
+                if (list.includes(leg.trainNumber)) {
+                  list = list.filter((t: string) => t !== leg.trainNumber);
+                } else {
+                  list.push(leg.trainNumber);
+                }
+                localStorage.setItem('saved_wishlist_trains', JSON.stringify(list));
+                // trigger storage event
+                window.dispatchEvent(new Event('storage'));
+              } catch (e) {}
+            }}
+            className="p-1.5 rounded-lg bg-[#273650] hover:bg-[#324567] ml-3 transition-all active:scale-95"
+            title="Save to Wishlist"
+          >
+            <Heart className="w-4.5 h-4.5 text-pink-400 hover:fill-pink-500 transition-colors" />
+          </button>
         </div>
         
         {/* Running Days */}
