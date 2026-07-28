@@ -281,16 +281,30 @@ export default function ResultsSection({
      });
   }
 
-  // Smart Sorting logic
+  const getDepMinutes = (r: Route) => {
+    const timeStr = r.legs[0]?.departureTime || "00:00";
+    let h = 0, m = 0;
+    if (timeStr.toLowerCase().includes('am') || timeStr.toLowerCase().includes('pm')) {
+      const isPM = timeStr.toLowerCase().includes('pm');
+      const clean = timeStr.replace(/am|pm/gi, '').trim();
+      const parts = clean.split(':');
+      h = (parseInt(parts[0] || '0') % 12) + (isPM ? 12 : 0);
+      m = parseInt(parts[1] || '0');
+    } else {
+      const parts = timeStr.split(':');
+      h = parseInt(parts[0] || '0');
+      m = parseInt(parts[1] || '0');
+    }
+    return h * 60 + m;
+  };
+
+  // Chronological Sorting by Departure Time (00:00 to 23:59)
   filtered.sort((a, b) => {
     if (activeFilter !== 'high-confirm-chance') {
-      return a.totalDurationMinutes - b.totalDurationMinutes;
+      return getDepMinutes(a) - getDepMinutes(b);
     }
 
     // Intelligence Sort for High Confirm Chance Tab:
-    // 1. Fully Available routes across ALL legs come first (statusScore === 1)
-    // 2. Cheapest total fare first (minFare ascending)
-    // 3. Fastest travel time tie-breaker
     const aStats = getBestFareAndStatus(a);
     const bStats = getBestFareAndStatus(b);
     
@@ -301,7 +315,7 @@ export default function ResultsSection({
        return aStats.minFare - bStats.minFare;
     }
     
-    return a.totalDurationMinutes - b.totalDurationMinutes;
+    return getDepMinutes(a) - getDepMinutes(b);
   });
 
   return (

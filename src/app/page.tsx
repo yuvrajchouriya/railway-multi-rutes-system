@@ -23,9 +23,11 @@ export default function Home() {
   }, [results !== null]);
 
   useEffect(() => {
-    const handlePopState = () => {
-      setResults(null);
-      setIsLoading(false);
+    const handlePopState = (e: PopStateEvent) => {
+      if (!e.state || e.state.view !== 'results') {
+        setResults(null);
+        setIsLoading(false);
+      }
     };
     window.addEventListener('popstate', handlePopState);
     return () => {
