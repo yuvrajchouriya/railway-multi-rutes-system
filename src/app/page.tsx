@@ -6,6 +6,7 @@ import SearchForm from '@/components/SearchForm';
 import ResultsSection from '@/components/ResultsSection';
 import LiveLogs from '@/components/LiveLogs';
 import RouteCard from '@/components/RouteCard';
+import LiveTrainModal from '@/components/LiveTrainModal';
 import { Train, Heart, X } from 'lucide-react';
 
 export default function Home() {
@@ -99,6 +100,8 @@ export default function Home() {
     }
   };
 
+  const [selectedLiveTrain, setSelectedLiveTrain] = useState<{ trainNumber: string; trainName: string } | null>(null);
+
   return (
     <div className="min-h-screen bg-[var(--color-brand-navy)] pb-10">
       {/* ── Top Nav (How2Go) ─────────────────────────────────────── */}
@@ -139,7 +142,7 @@ export default function Home() {
             <div className="flex items-center justify-between pb-3 border-b border-[#2C3E5E] mb-4">
               <h3 className="text-base font-black flex items-center gap-2">
                 <Heart className="w-5 h-5 text-pink-500 fill-pink-500" />
-                <span>Wishlist Saved Routes ({savedFullRoutes.length + wishlistItems.length})</span>
+                <span>Wishlist Saved Items ({savedFullRoutes.length + wishlistItems.length})</span>
               </h3>
               <button onClick={() => setShowWishlistModal(false)} className="p-1 rounded-full hover:bg-white/10 text-gray-300">
                 <X className="w-5 h-5" />
@@ -183,7 +186,7 @@ export default function Home() {
                     );
                   })}
 
-                  {/* Legacy Saved Trains */}
+                  {/* Saved Trains */}
                   {wishlistItems.map((item: any, idx: number) => {
                     const tNo = typeof item === 'string' ? item : item.trainNumber;
                     const tName = typeof item === 'string' ? (item === '20423' ? 'Patalkot Express' : 'Rewa Express') : (item.trainName || 'Saved Train');
@@ -198,12 +201,12 @@ export default function Home() {
                         </div>
                         <button
                           onClick={() => {
-                            handleSearch(fCode, tCode, searchedDate || new Date().toISOString().split('T')[0]);
+                            setSelectedLiveTrain({ trainNumber: tNo, trainName: tName });
                             setShowWishlistModal(false);
                           }}
-                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-lg shadow"
+                          className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:opacity-90 text-white font-extrabold text-xs rounded-xl shadow transition-all active:scale-95"
                         >
-                          Search
+                          Live Status
                         </button>
                       </div>
                     );
@@ -220,6 +223,15 @@ export default function Home() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* ── Direct Live Train Modal from Wishlist ── */}
+      {selectedLiveTrain && (
+        <LiveTrainModal
+          trainNumber={selectedLiveTrain.trainNumber}
+          trainName={selectedLiveTrain.trainName}
+          onClose={() => setSelectedLiveTrain(null)}
+        />
       )}
 
       {/* ── Dedicated Saved Route Preview Modal (OPENS ONLY THIS EXACT ROUTE) ── */}
