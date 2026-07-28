@@ -82,6 +82,40 @@ function LegCard({ leg, showDivider = false, liveClasses }: { leg: TrainLeg; sho
   const [expandedClass, setExpandedClass] = useState<string | null>(null);
   const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
   const [showLiveModal, setShowLiveModal] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('saved_wishlist_trains');
+      if (saved) {
+        const list = JSON.parse(saved);
+        const exists = list.some((item: any) => typeof item === 'string' ? item === leg.trainNumber : item.trainNumber === leg.trainNumber);
+        if (exists) setIsWishlisted(true);
+      }
+    } catch (e) {}
+  }, [leg.trainNumber]);
+
+  const toggleWishlist = () => {
+    try {
+      const saved = localStorage.getItem('saved_wishlist_trains');
+      let list: any[] = saved ? JSON.parse(saved) : [];
+      const exists = list.some((item: any) => typeof item === 'string' ? item === leg.trainNumber : item.trainNumber === leg.trainNumber);
+      if (exists) {
+        list = list.filter((item: any) => typeof item === 'string' ? item !== leg.trainNumber : item.trainNumber !== leg.trainNumber);
+        setIsWishlisted(false);
+      } else {
+        list.push({
+          trainNumber: leg.trainNumber,
+          trainName: leg.trainName,
+          fromCode: leg.fromStation.code,
+          toCode: leg.toStation.code
+        });
+        setIsWishlisted(true);
+      }
+      localStorage.setItem('saved_wishlist_trains', JSON.stringify(list));
+      window.dispatchEvent(new Event('storage'));
+    } catch (e) {}
+  };
 
   const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -101,24 +135,15 @@ function LegCard({ leg, showDivider = false, liveClasses }: { leg: TrainLeg; sho
           </div>
 
           <button
-            onClick={() => {
-              try {
-                const saved = localStorage.getItem('saved_wishlist_trains');
-                let list = saved ? JSON.parse(saved) : [];
-                if (list.includes(leg.trainNumber)) {
-                  list = list.filter((t: string) => t !== leg.trainNumber);
-                } else {
-                  list.push(leg.trainNumber);
-                }
-                localStorage.setItem('saved_wishlist_trains', JSON.stringify(list));
-                // trigger storage event
-                window.dispatchEvent(new Event('storage'));
-              } catch (e) {}
-            }}
+            onClick={toggleWishlist}
             className="p-1.5 rounded-lg bg-[#273650] hover:bg-[#324567] ml-3 transition-all active:scale-95"
             title="Save to Wishlist"
           >
-            <Heart className="w-4.5 h-4.5 text-pink-400 hover:fill-pink-500 transition-colors" />
+            <Heart className={`w-4.5 h-4.5 transition-colors ${
+              isWishlisted
+                ? 'text-pink-500 fill-pink-500 shadow-[0_0_12px_rgba(236,72,153,0.9)]'
+                : 'text-gray-400 hover:text-pink-400'
+            }`} />
           </button>
         </div>
         

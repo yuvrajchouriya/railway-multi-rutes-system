@@ -246,7 +246,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
           <button
             onClick={() => alert('⏰ Station Alarm enabled! We will notify you when train approaches your station.')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#24334B] hover:bg-[#2F4262] text-xs font-bold text-gray-200 border border-[#34486A] transition-all flex-shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#24344D] hover:bg-[#2F4262] text-xs font-bold text-gray-200 border border-[#34486A] transition-all flex-shrink-0"
           >
             <Bell className="w-3.5 h-3.5 text-amber-400" />
             <span>Alarm</span>
@@ -254,7 +254,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
           <button
             onClick={() => setShowCoachModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#24334B] hover:bg-[#2F4262] text-xs font-bold text-gray-200 border border-[#34486A] transition-all flex-shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#24344D] hover:bg-[#2F4262] text-xs font-bold text-gray-200 border border-[#34486A] transition-all flex-shrink-0"
           >
             <Train className="w-3.5 h-3.5 text-emerald-400" />
             <span>Coach</span>
@@ -262,7 +262,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
           <button
             onClick={handleShare}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#24334B] hover:bg-[#2F4262] text-xs font-bold text-gray-200 border border-[#34486A] transition-all flex-shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#24344D] hover:bg-[#2F4262] text-xs font-bold text-gray-200 border border-[#34486A] transition-all flex-shrink-0"
           >
             <Share2 className="w-3.5 h-3.5 text-purple-400" />
             <span>{copiedShare ? 'Copied!' : 'Share'}</span>
@@ -271,14 +271,14 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
         {/* ── Arrival / Date Header / Departure ───────────────────── */}
         <div className="bg-[#0B0F17] px-4 py-2 border-b border-[#25344D] flex items-center justify-between text-xs font-bold text-gray-300 z-20">
-          <div className="w-[76px] text-left uppercase text-gray-400 tracking-wider">Arrival</div>
+          <div className="w-[100px] text-left uppercase text-gray-400 tracking-wider">Arrival</div>
           <div className="text-center font-extrabold text-white text-xs sm:text-sm">
             {data?.startDate ? `Day 1 - ${new Date(data.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })}` : 'Live Running Track'}
           </div>
           <div className="w-20 text-right uppercase text-gray-400 tracking-wider">Departure</div>
         </div>
 
-        {/* ── Main Scrollable Timeline (EXACT WIMT SLATE-GREY SUB-STATION SECTION BANDS & DEAD-CENTER DOTS) ── */}
+        {/* ── Main Scrollable Timeline (ROW-EMBEDDED STEEL RAILS TRACK LADDER & DEAD-CENTER DOTS) ── */}
         <div className="flex-1 overflow-y-auto bg-[#0B0F17] px-0 py-0 relative z-10">
 
           {loading && (
@@ -301,22 +301,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           {!loading && !error && data?.route && (
             <div className="relative min-h-full">
               
-              {/* ── CONTINUOUS TRACK LADDER (EXACT X-ALIGNMENT: left-[76px] w-5) ── */}
-              <div className="absolute left-[76px] top-0 bottom-0 w-5 z-0 pointer-events-none flex justify-center">
-                {/* Left Steel Rail */}
-                <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_12px_rgba(6,182,212,1)]"></div>
-                {/* Right Steel Rail */}
-                <div className="absolute right-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_12px_rgba(6,182,212,1)]"></div>
-                {/* Sleepers */}
-                <div
-                  className="absolute left-0 right-0 top-0 bottom-0 opacity-60 z-0"
-                  style={{
-                    backgroundImage: 'linear-gradient(to bottom, #cbd5e1 2px, transparent 2px)',
-                    backgroundSize: '100% 12px'
-                  }}
-                ></div>
-              </div>
-
               {/* Station Rows */}
               <div className="flex flex-col relative z-10">
                 {visibleRoute.map((stn: any, idx: number) => {
@@ -348,7 +332,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                       }`}
                     >
                       {/* Left: Scheduled & Actual Arrival */}
-                      <div className="w-[76px] text-left flex flex-col justify-center flex-shrink-0 z-10">
+                      <div className="w-[100px] flex-shrink-0 text-left flex flex-col justify-center z-10">
                         <span className={`text-xs sm:text-sm font-bold ${isHalt ? 'text-gray-200' : 'text-slate-100'}`}>
                           {schArr !== '--' ? schArr : schDep}
                         </span>
@@ -359,22 +343,36 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                         )}
                       </div>
 
-                      {/* 100% MATHEMATICALLY DEAD-CENTERED TRACK COLUMN (w-5 = 20px, matches left-[76px] w-5 track container!) */}
-                      <div className="relative flex items-center justify-center w-5 flex-shrink-0 z-20 bg-transparent">
+                      {/* ROW-EMBEDDED STEEL RAILS TRACK LADDER COLUMN (100% IMPOSSIBLE TO MISALIGN OR SEPARATE!) */}
+                      <div className="relative w-8 flex-shrink-0 flex items-center justify-center min-h-[56px] z-20">
+                        {/* Continuous Steel Rails + Metallic Sleepers */}
+                        <div className="absolute inset-y-0 w-5 flex justify-center pointer-events-none z-0">
+                          {/* Left Steel Rail */}
+                          <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_10px_rgba(6,182,212,1)]"></div>
+                          {/* Right Steel Rail */}
+                          <div className="absolute right-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_10px_rgba(6,182,212,1)]"></div>
+                          {/* Sleepers */}
+                          <div
+                            className="absolute left-0 right-0 top-0 bottom-0 opacity-70"
+                            style={{
+                              backgroundImage: 'linear-gradient(to bottom, #cbd5e1 2px, transparent 2px)',
+                              backgroundSize: '100% 12px'
+                            }}
+                          ></div>
+                        </div>
+
+                        {/* Station Dot / Badge (Centered exactly on top of the rails!) */}
                         {isCurrentLoc ? (
-                          /* LIVE RUNNING TRAIN BADGE (100% DEAD CENTER) */
-                          <div className="relative flex items-center justify-center">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-400 via-blue-500 to-purple-600 border-2 border-white shadow-[0_0_15px_rgba(6,182,212,1)] flex items-center justify-center animate-bounce z-30">
+                          <div className="relative flex items-center justify-center z-30">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-400 via-blue-500 to-purple-600 border-2 border-white shadow-[0_0_15px_rgba(6,182,212,1)] flex items-center justify-center animate-bounce">
                               <Train className="w-4.5 h-4.5 text-white" />
                             </div>
-                            <div className="absolute inset-0 rounded-full bg-cyan-400/50 animate-ping z-20"></div>
+                            <div className="absolute inset-0 rounded-full bg-cyan-400/50 animate-ping"></div>
                           </div>
                         ) : isHalt ? (
-                          /* Major Halt Station Circle (ALWAYS BRIGHT CYAN & WHITE - 100% DEAD CENTER!) */
-                          <div className="w-4 h-4 rounded-full border-2 border-white bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,1)] z-20"></div>
+                          <div className="w-4 h-4 rounded-full border-2 border-white bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,1)] z-30"></div>
                         ) : (
-                          /* Sub-Station Cyan Dot (ALWAYS BRIGHT CYAN & WHITE - 100% DEAD CENTER!) */
-                          <div className="w-3 h-3 rounded-full border border-white bg-cyan-300 shadow-[0_0_8px_rgba(34,211,238,0.9)] z-20"></div>
+                          <div className="w-3 h-3 rounded-full border border-white bg-cyan-300 shadow-[0_0_8px_rgba(34,211,238,0.9)] z-30"></div>
                         )}
                       </div>
 
