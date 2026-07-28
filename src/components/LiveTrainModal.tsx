@@ -278,7 +278,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           <div className="w-20 text-right uppercase text-gray-400 tracking-wider">Departure</div>
         </div>
 
-        {/* ── Main Scrollable Timeline (ROW-EMBEDDED STEEL RAILS TRACK LADDER & DEAD-CENTER DOTS) ── */}
+        {/* ── Main Scrollable Timeline (100% CONTINUOUS UNBROKEN OVERLAPPING STEEL RAILS TRACK) ── */}
         <div className="flex-1 overflow-y-auto bg-[#0B0F17] px-0 py-0 relative z-10">
 
           {loading && (
@@ -302,7 +302,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
             <div className="relative min-h-full">
               
               {/* Station Rows */}
-              <div className="flex flex-col relative z-10">
+              <div className="flex flex-col relative z-10 overflow-hidden">
                 {visibleRoute.map((stn: any, idx: number) => {
                   const isCurrentLoc = data.currentLocation?.stationCode === stn.stationCode || data.currentLocation?.sequence === stn.sequence;
                   const isHalt = stn.isHalt !== false;
@@ -328,7 +328,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                       className={`relative flex items-center justify-between py-3.5 px-3 transition-colors cursor-pointer ${
                         isHalt
                           ? 'bg-[#0B0F17]' // Main Halt Station: Pitch Black Background (Exact WIMT 2nd Image Style!)
-                          : 'bg-[#2B384B] border-y border-[#35465E]' // Sub-Station: Continuous Slate Blue-Grey Band (Exact WIMT 2nd Image Style!)
+                          : 'bg-[#2B384B]' // Sub-Station: Continuous Slate Blue-Grey Band (NO BORDER LINES TO BREAK TRACK!)
                       }`}
                     >
                       {/* Left: Scheduled & Actual Arrival */}
@@ -343,13 +343,13 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                         )}
                       </div>
 
-                      {/* ROW-EMBEDDED STEEL RAILS TRACK LADDER COLUMN (100% IMPOSSIBLE TO MISALIGN OR SEPARATE!) */}
-                      <div className="relative w-8 flex-shrink-0 flex items-center justify-center min-h-[56px] z-20">
-                        {/* Continuous Steel Rails + Metallic Sleepers */}
-                        <div className="absolute inset-y-0 w-5 flex justify-center pointer-events-none z-0">
-                          {/* Left Steel Rail */}
+                      {/* 100% UNBROKEN CONTINUOUS OVERLAPPING STEEL RAILS TRACK LADDER COLUMN */}
+                      <div className="relative w-12 flex-shrink-0 flex items-center justify-center min-h-[56px] z-20">
+                        {/* Continuous Steel Rails (-top-6 to -bottom-6 OVERLAPPING FOR ZERO GAPS!) */}
+                        <div className="absolute -top-6 -bottom-6 w-5 flex justify-center pointer-events-none z-0">
+                          {/* Left Continuous Steel Rail */}
                           <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_10px_rgba(6,182,212,1)]"></div>
-                          {/* Right Steel Rail */}
+                          {/* Right Continuous Steel Rail */}
                           <div className="absolute right-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_10px_rgba(6,182,212,1)]"></div>
                           {/* Sleepers */}
                           <div
