@@ -184,6 +184,8 @@ export default function ResultsSection({
   // ── Filter & sort ────────────────────────────────────────
   let filtered = activeFilter === 'all'
     ? [...allRoutes]
+    : activeFilter === 'high-confirm-chance'
+    ? allRoutes.filter(r => (r.type === 'direct' || r.tags.includes('hidden-quota')))
     : allRoutes.filter(r => r.tags.includes(activeFilter as RouteTag));
 
   const isAvailableStatus = (s: string) => {
