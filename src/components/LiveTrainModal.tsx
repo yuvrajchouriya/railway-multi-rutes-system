@@ -47,7 +47,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
       if (saved) {
         const list = JSON.parse(saved);
         const exists = list.some((item: any) => 
-          typeof item === 'string' ? item === trainNumber : item.trainNumber === trainNumber
+          typeof item === 'string' ? item === String(trainNumber) : item.trainNumber === String(trainNumber)
         );
         if (exists) setIsWishlisted(true);
       }
@@ -57,18 +57,16 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
   const toggleWishlist = () => {
     try {
       const saved = localStorage.getItem('saved_wishlist_trains');
-      let list: WishlistItem[] = saved ? JSON.parse(saved) : [];
-      if (list.length > 0 && typeof list[0] === 'string') {
-        list = (list as unknown as string[]).map(t => ({ trainNumber: t, trainName: `Train ${t}` }));
-      }
+      let list: any[] = saved ? JSON.parse(saved) : [];
+      const trainNoStr = String(trainNumber);
+      const exists = list.some(item => (typeof item === 'string' ? item === trainNoStr : item.trainNumber === trainNoStr));
       
-      const exists = list.some(item => item.trainNumber === trainNumber);
       if (exists) {
-        list = list.filter(item => item.trainNumber !== trainNumber);
+        list = list.filter(item => (typeof item === 'string' ? item !== trainNoStr : item.trainNumber !== trainNoStr));
         setIsWishlisted(false);
       } else {
         list.push({
-          trainNumber,
+          trainNumber: trainNoStr,
           trainName: data?.train?.name || trainName,
           fromCode: data?.route?.[0]?.stationCode || 'CWA',
           toCode: data?.route?.[data?.route?.length - 1]?.stationCode || 'BPL'
@@ -167,10 +165,10 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-[#121824] border border-[#233148] rounded-none sm:rounded-2xl w-full max-w-2xl h-full sm:h-[92vh] flex flex-col shadow-2xl overflow-hidden text-white font-sans relative">
+      <div className="bg-[#0B0F17] border border-[#233148] rounded-none sm:rounded-2xl w-full max-w-2xl h-full sm:h-[92vh] flex flex-col shadow-2xl overflow-hidden text-white font-sans relative">
         
         {/* ── Top Header with PINK HEART WISHLIST BUTTON ─────────── */}
-        <div className="bg-[#1C2638] px-4 py-3 border-b border-[#2B3B56] flex items-center justify-between z-20">
+        <div className="bg-[#182232] px-4 py-3 border-b border-[#2B3B56] flex items-center justify-between z-20">
           <div className="flex items-center gap-3">
             <button onClick={onClose} className="p-1.5 rounded-full hover:bg-white/10 text-gray-300">
               <X className="w-5 h-5" />
@@ -188,7 +186,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
             {/* Wishlist Pink Heart Button */}
             <button
               onClick={toggleWishlist}
-              className="p-2 rounded-xl bg-[#273650] hover:bg-[#324567] transition-all active:scale-95"
+              className="p-2 rounded-xl bg-[#25344D] hover:bg-[#324567] transition-all active:scale-95"
               title="Save to Wishlist"
             >
               <Heart className={`w-5 h-5 transition-colors ${
@@ -201,7 +199,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
             <button
               onClick={fetchLiveStatus}
               disabled={loading}
-              className="p-2 rounded-xl bg-[#273650] hover:bg-[#324567] text-gray-200 transition-colors disabled:opacity-50"
+              className="p-2 rounded-xl bg-[#25344D] hover:bg-[#324567] text-gray-200 transition-colors disabled:opacity-50"
               title="Refresh"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -210,7 +208,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
         </div>
 
         {/* ── Top Feature Action Pills Bar (Today, Alarm, Coach, Share) ── */}
-        <div className="bg-[#172030] px-4 py-2 border-b border-[#24334B] flex items-center gap-2 overflow-x-auto scrollbar-hide relative z-20">
+        <div className="bg-[#121927] px-4 py-2 border-b border-[#24334B] flex items-center gap-2 overflow-x-auto scrollbar-hide relative z-20">
           <div className="relative">
             <button
               onClick={() => setShowDateDropdown(!showDateDropdown)}
@@ -272,16 +270,16 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
         </div>
 
         {/* ── Arrival / Date Header / Departure ───────────────────── */}
-        <div className="bg-[#141C2B] px-4 py-2 border-b border-[#25344D] flex items-center justify-between text-xs font-bold text-gray-300 z-20">
-          <div className="w-20 text-left uppercase text-gray-400 tracking-wider">Arrival</div>
+        <div className="bg-[#0B0F17] px-4 py-2 border-b border-[#25344D] flex items-center justify-between text-xs font-bold text-gray-300 z-20">
+          <div className="w-[76px] text-left uppercase text-gray-400 tracking-wider">Arrival</div>
           <div className="text-center font-extrabold text-white text-xs sm:text-sm">
             {data?.startDate ? `Day 1 - ${new Date(data.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })}` : 'Live Running Track'}
           </div>
           <div className="w-20 text-right uppercase text-gray-400 tracking-wider">Departure</div>
         </div>
 
-        {/* ── Main Scrollable Timeline with 100% DEAD-CENTERED BRIGHT CYAN TRACK ───────────────────────────── */}
-        <div className="flex-1 overflow-y-auto bg-[#0D121B] px-0 py-0 relative z-10">
+        {/* ── Main Scrollable Timeline (EXACT WIMT SLATE-GREY SUB-STATION SECTION BANDS & DEAD-CENTER DOTS) ── */}
+        <div className="flex-1 overflow-y-auto bg-[#0B0F17] px-0 py-0 relative z-10">
 
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 text-gray-400 gap-3">
@@ -303,13 +301,13 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           {!loading && !error && data?.route && (
             <div className="relative min-h-full">
               
-              {/* ── CONTINUOUS VIBRANT TRACK LADDER (EXACT X-ALIGNMENT: left-[80px] w-6) ── */}
-              <div className="absolute left-[80px] top-0 bottom-0 w-6 z-0 pointer-events-none flex justify-center">
+              {/* ── CONTINUOUS TRACK LADDER (EXACT X-ALIGNMENT: left-[76px] w-5) ── */}
+              <div className="absolute left-[76px] top-0 bottom-0 w-5 z-0 pointer-events-none flex justify-center">
                 {/* Left Steel Rail */}
                 <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_12px_rgba(6,182,212,1)]"></div>
                 {/* Right Steel Rail */}
                 <div className="absolute right-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_12px_rgba(6,182,212,1)]"></div>
-                {/* Metallic Sleepers */}
+                {/* Sleepers */}
                 <div
                   className="absolute left-0 right-0 top-0 bottom-0 opacity-60 z-0"
                   style={{
@@ -343,13 +341,15 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                     <div
                       key={stn.stationCode || idx}
                       onClick={() => toggleSection(stn.sectionId)}
-                      className="relative flex items-center justify-between py-3 px-3 transition-colors cursor-pointer"
+                      className={`relative flex items-center justify-between py-3.5 px-3 transition-colors cursor-pointer ${
+                        isHalt
+                          ? 'bg-[#0B0F17]' // Main Halt Station: Pitch Black Background (Exact WIMT 2nd Image Style!)
+                          : 'bg-[#2B384B] border-y border-[#35465E]' // Sub-Station: Continuous Slate Blue-Grey Band (Exact WIMT 2nd Image Style!)
+                      }`}
                     >
                       {/* Left: Scheduled & Actual Arrival */}
-                      <div className={`w-20 text-left flex flex-col justify-center flex-shrink-0 z-10 p-1.5 rounded-xl ${
-                        isHalt ? 'bg-[#0A101D] border border-[#1E2B40]' : 'bg-slate-800/70 border border-slate-600/40'
-                      }`}>
-                        <span className={`text-xs sm:text-sm font-bold ${isHalt ? 'text-gray-200' : 'text-slate-200'}`}>
+                      <div className="w-[76px] text-left flex flex-col justify-center flex-shrink-0 z-10">
+                        <span className={`text-xs sm:text-sm font-bold ${isHalt ? 'text-gray-200' : 'text-slate-100'}`}>
                           {schArr !== '--' ? schArr : schDep}
                         </span>
                         {actArr !== '--' && actArr !== schArr && (
@@ -359,8 +359,8 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                         )}
                       </div>
 
-                      {/* 100% DEAD-CENTERED TRACK COLUMN (w-6 flex items-center justify-center matches left-[80px] w-6!) */}
-                      <div className="relative flex items-center justify-center w-6 flex-shrink-0 z-20 bg-transparent">
+                      {/* 100% MATHEMATICALLY DEAD-CENTERED TRACK COLUMN (w-5 = 20px, matches left-[76px] w-5 track container!) */}
+                      <div className="relative flex items-center justify-center w-5 flex-shrink-0 z-20 bg-transparent">
                         {isCurrentLoc ? (
                           /* LIVE RUNNING TRAIN BADGE (100% DEAD CENTER) */
                           <div className="relative flex items-center justify-center">
@@ -378,19 +378,17 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                         )}
                       </div>
 
-                      {/* Middle: Station Name & Platform (Main Station: Deep Dark #0A101D vs Sub-Station: LIGHT SILVER bg-slate-800/70) */}
-                      <div className={`flex-1 min-w-0 px-3 z-10 p-2.5 rounded-xl border transition-all ${
-                        isHalt
-                          ? 'bg-[#0A101D] border-[#1E2B40] shadow-md' // Main Station: Deep Dark Black Theme
-                          : 'bg-slate-800/70 border-slate-600/50 hover:bg-slate-700/80' // Sub-Station: LIGHT SILVER METALLIC THEME
-                      }`}>
-                        <div className={`text-sm sm:text-base font-extrabold truncate ${isHalt ? 'text-white' : 'text-slate-100 font-semibold'}`}>
+                      {/* Middle: Station Name & Platform */}
+                      <div className="flex-1 min-w-0 px-3 z-10">
+                        <div className={`text-sm sm:text-base truncate ${isHalt ? 'font-extrabold text-white' : 'font-bold text-slate-100'}`}>
                           {stn.stationName}
                         </div>
                         <div className="flex items-center gap-2 text-[11px] text-gray-400 mt-0.5 flex-wrap">
                           <span className={isHalt ? 'text-gray-300' : 'text-slate-300'}>{stn.distanceKm || stn.distance || 0} km</span>
                           {stn.platform && stn.platform !== '--' && (
-                            <span className="text-gray-200 bg-[#1E2B40] px-2 py-0.5 rounded border border-[#374F75] font-bold text-[10px]">
+                            <span className={`px-2 py-0.5 rounded border font-bold text-[10px] ${
+                              isHalt ? 'text-gray-200 bg-[#1E2B40] border-[#374F75]' : 'text-slate-200 bg-[#212E40] border-[#3A4E6C]'
+                            }`}>
                               Platform {stn.platform}
                             </span>
                           )}
@@ -398,10 +396,8 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                       </div>
 
                       {/* Right: Scheduled & Actual Departure */}
-                      <div className={`w-20 text-right flex flex-col justify-center flex-shrink-0 z-10 p-1.5 rounded-xl ${
-                        isHalt ? 'bg-[#0A101D] border border-[#1E2B40]' : 'bg-slate-800/70 border border-slate-600/40'
-                      }`}>
-                        <span className={`text-xs sm:text-sm font-bold ${isHalt ? 'text-gray-200' : 'text-slate-200'}`}>
+                      <div className="w-20 text-right flex flex-col justify-center flex-shrink-0 z-10">
+                        <span className={`text-xs sm:text-sm font-bold ${isHalt ? 'text-gray-200' : 'text-slate-100'}`}>
                           {schDep}
                         </span>
                         {actDep !== '--' && actDep !== schDep && (
