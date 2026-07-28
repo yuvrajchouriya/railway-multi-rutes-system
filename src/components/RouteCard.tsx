@@ -636,33 +636,16 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
 
           return (
             <div className="block md:hidden">
-              {/* Tags & Wishlist Heart Button (Mobile) */}
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {displayTags.slice(0, 3).map(tag => {
-                    const cfg = TAG_CONFIG[tag as keyof typeof TAG_CONFIG];
-                    return cfg ? (
-                      <span key={tag} className={`text-[10px] font-bold px-2 py-0.5 rounded-sm border ${cfg.bg}`}>
-                        {cfg.label}
-                      </span>
-                    ) : null;
-                  })}
-                </div>
-
-                <button
-                  onClick={toggleFullRouteWishlist}
-                  className="px-2.5 py-1 rounded-xl bg-[#203254] hover:bg-[#2A426E] border border-pink-500/40 transition-all active:scale-95 flex items-center gap-1.5 shadow"
-                  title="Save Full Route to Wishlist"
-                >
-                  <Heart className={`w-4 h-4 transition-colors ${
-                    isWishlisted
-                      ? 'text-pink-500 fill-pink-500 shadow-[0_0_12px_rgba(236,72,153,0.8)]'
-                      : 'text-gray-400 hover:text-pink-400'
-                  }`} />
-                  <span className="text-[10px] font-extrabold text-gray-200">
-                    {isWishlisted ? 'Saved' : 'Save Route'}
-                  </span>
-                </button>
+              {/* Tags (Mobile) */}
+              <div className="flex items-center gap-2 flex-wrap mb-3">
+                {displayTags.slice(0, 3).map(tag => {
+                  const cfg = TAG_CONFIG[tag as keyof typeof TAG_CONFIG];
+                  return cfg ? (
+                    <span key={tag} className={`text-[10px] font-bold px-2 py-0.5 rounded-sm border ${cfg.bg}`}>
+                      {cfg.label}
+                    </span>
+                  ) : null;
+                })}
               </div>
 
               <div className="flex justify-between items-end mb-1">
@@ -704,12 +687,27 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
                 </div>
               </div>
 
-              <button
-                onClick={() => setExpanded(!expanded)}
-                className="w-full py-3 flex items-center justify-center gap-2 text-xs font-bold tracking-[0.1em] text-[var(--color-brand-blue)] border border-[#2A3B54] rounded-lg bg-[#111A2D]"
-              >
-                ROUTE DETAILS {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setExpanded(!expanded)}
+                  className="flex-1 py-3 flex items-center justify-center gap-2 text-xs font-bold tracking-[0.1em] text-[var(--color-brand-blue)] border border-[#2A3B54] rounded-lg bg-[#111A2D]"
+                >
+                  ROUTE DETAILS {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+
+                {/* Compact Heart Box Next To ROUTE DETAILS */}
+                <button
+                  onClick={toggleFullRouteWishlist}
+                  className="p-3 rounded-lg bg-[#111A2D] hover:bg-[#203254] border border-[#2A3B54] transition-all active:scale-95 flex items-center justify-center shadow"
+                  title="Save Route to Wishlist"
+                >
+                  <Heart className={`w-5 h-5 transition-colors ${
+                    isWishlisted
+                      ? 'text-pink-500 fill-pink-500 shadow-[0_0_12px_rgba(236,72,153,0.8)]'
+                      : 'text-gray-400 hover:text-pink-400'
+                  }`} />
+                </button>
+              </div>
             </div>
           );
         })()}
@@ -728,26 +726,13 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
             })}
           </div>
 
-          {/* Title with Pink Heart Wishlist Button */}
-          <div className="flex items-center justify-between mb-6 gap-3">
-            <button
-              onClick={toggleFullRouteWishlist}
-              className="px-3 py-1.5 rounded-xl bg-[#203254] hover:bg-[#2A426E] border border-pink-500/40 transition-all active:scale-95 flex items-center gap-1.5 shadow"
-              title="Save Full Route to Wishlist"
-            >
-              <Heart className={`w-5 h-5 transition-colors ${
-                isWishlisted
-                  ? 'text-pink-500 fill-pink-500 shadow-[0_0_12px_rgba(236,72,153,0.8)]'
-                  : 'text-gray-400 hover:text-pink-400'
-              }`} />
-              <span className="text-xs font-black text-gray-200">
-                {isWishlisted ? 'Saved Route' : 'Save Full Route'}
-              </span>
-            </button>
+          {/* Title */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="w-24"></div> {/* spacer for centering */}
             
             <h3 className="text-[17px] font-black text-white text-center flex-1">{headline}</h3>
             
-            <div className="text-right">
+            <div className="text-right w-24">
               {calculatedFare > 0 && !isAnyFetching && (
                 <div className="text-[17px] font-black text-white">
                   <span className="text-[12px] text-gray-400 font-medium mr-1">from</span>
@@ -908,6 +893,19 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
                   Loading Seats...
                 </div>
               )}
+
+              {/* Compact Heart Box next to DETAILS in Desktop View */}
+              <button
+                onClick={toggleFullRouteWishlist}
+                className="p-1.5 rounded-lg bg-[#111A2D] hover:bg-[#203254] border border-[#3A506B] transition-all active:scale-95 flex items-center justify-center shadow"
+                title="Save Route to Wishlist"
+              >
+                <Heart className={`w-4 h-4 transition-colors ${
+                  isWishlisted
+                    ? 'text-pink-500 fill-pink-500 shadow-[0_0_12px_rgba(236,72,153,0.8)]'
+                    : 'text-gray-400 hover:text-pink-400'
+                }`} />
+              </button>
 
               <button
                 onClick={() => setExpanded(!expanded)}

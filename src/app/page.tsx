@@ -198,22 +198,11 @@ export default function Home() {
                         <div className="flex items-center gap-1.5 flex-shrink-0">
                           <button
                             onClick={() => {
-                              handleSearch(firstLeg.fromStation.code, lastLeg.toStation.code, searchedDate || new Date().toISOString().split('T')[0]);
-                              setShowWishlistModal(false);
-                            }}
-                            className="px-2.5 py-1.5 bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs rounded-xl shadow transition-all active:scale-95"
-                            title="Search Route Results"
-                          >
-                            Search Route
-                          </button>
-
-                          <button
-                            onClick={() => {
                               setSelectedSavedRoute(route);
                               setShowWishlistModal(false);
                             }}
-                            className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow transition-all active:scale-95"
-                            title="View Saved Card"
+                            className="px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white font-extrabold text-xs rounded-xl shadow transition-all active:scale-95"
+                            title="View Saved Route Card"
                           >
                             View Card
                           </button>
