@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, RefreshCw, Train, MapPin, AlertCircle, Calendar, Bell, Share2, ChevronDown, Check, MessageSquare, ChevronUp, Heart, Volume2, VolumeX, CheckCircle, Navigation, Gauge, Zap, Compass, ShieldAlert, WifiOff } from 'lucide-react';
 import ProximityNotificationToast from './ProximityNotificationToast';
+import { apiFetch } from '@/lib/shield';
 
 interface LiveTrainModalProps {
   trainNumber: string;
