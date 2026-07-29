@@ -40,7 +40,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
   const [currentSpeedKmH, setCurrentSpeedKmH] = useState<number | null>(null);
   const [maxSpeedKmH, setMaxSpeedKmH] = useState<number>(0);
   const [gpsStatus, setGpsStatus] = useState<'off' | 'connecting' | 'active' | 'denied' | 'error'>('off');
-  const [demoSpeedMode, setDemoSpeedMode] = useState(false);
+
   const gpsWatchIdRef = useRef<number | null>(null);
   const lastPosRef = useRef<{ lat: number; lng: number; timestamp: number } | null>(null);
 
@@ -152,17 +152,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     };
   }, [showSpeedometerModal]);
 
-  useEffect(() => {
-    let interval: any;
-    if (demoSpeedMode) {
-      interval = setInterval(() => {
-        const simSpeed = Math.floor(75 + Math.random() * 35);
-        setCurrentSpeedKmH(simSpeed);
-        setMaxSpeedKmH(prev => Math.max(prev, simSpeed));
-      }, 1500);
-    }
-    return () => clearInterval(interval);
-  }, [demoSpeedMode]);
+
 
   // ── Mobile Single-Back History Handler ──────────────────────────────────
   useEffect(() => {
@@ -826,21 +816,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                 </div>
               </div>
 
-              {/* Laptop/Desktop Motion Simulator Toggle */}
-              <div className="mb-4 bg-[#0B0F17] p-2.5 rounded-xl border border-[#24334B] flex items-center justify-between text-xs font-bold">
-                <span className="text-gray-300 flex items-center gap-1.5">
-                  <Zap className="w-4 h-4 text-amber-400" />
-                  <span>Stationary Laptop Test Mode:</span>
-                </span>
-                <button
-                  onClick={() => setDemoSpeedMode(!demoSpeedMode)}
-                  className={`px-3 py-1 rounded-lg text-xs font-black border transition-all ${
-                    demoSpeedMode ? 'bg-amber-500 text-black border-amber-400' : 'bg-[#182335] text-gray-300 border-[#2C3E5A]'
-                  }`}
-                >
-                  {demoSpeedMode ? 'Simulating Train Motion 🚆' : 'Enable Motion Test'}
-                </button>
-              </div>
+
 
               <div className="grid grid-cols-2 gap-3 mb-4 text-center">
                 <div className="bg-[#0B0F17] p-3 rounded-xl border border-[#24334B]">
