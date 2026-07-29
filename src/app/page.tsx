@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Route } from '@/types/railway';
 import SearchForm from '@/components/SearchForm';
+import PNRSearchCard from '@/components/PNRSearchCard';
 import ResultsSection from '@/components/ResultsSection';
 import LiveLogs from '@/components/LiveLogs';
 import RouteCard from '@/components/RouteCard';
@@ -308,8 +309,9 @@ export default function Home() {
       <div className={`bg-[var(--color-brand-navy-card)] border-b border-[#3A506B] py-6 px-4 ${
         (isLoading || error || results) ? 'hidden md:block' : 'block'
       }`}>
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-5xl mx-auto space-y-4">
           <SearchForm onSearch={handleSearch} isLoading={isLoading} initialDate={searchedDate} />
+          <PNRSearchCard />
         </div>
       </div>
 
