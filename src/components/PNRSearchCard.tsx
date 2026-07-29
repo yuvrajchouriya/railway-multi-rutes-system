@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Ticket, Search, RefreshCw, CheckCircle, AlertCircle, Share2, Sparkles, User, Calendar, MapPin, ChevronRight, X, Clock } from 'lucide-react';
+import { Ticket, Search, RefreshCw, CheckCircle, AlertCircle, Share2, Sparkles, User, Calendar, MapPin, ChevronRight, X, Clock, PlayCircle } from 'lucide-react';
 
 export default function PNRSearchCard() {
   const [pnrInput, setPnrInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [allowDemo, setAllowDemo] = useState(false);
   const [pnrResult, setPnrResult] = useState<any | null>(null);
   const [recentPnrs, setRecentPnrs] = useState<string[]>([]);
   const [copiedShare, setCopiedShare] = useState(false);
@@ -20,7 +21,7 @@ export default function PNRSearchCard() {
     } catch (e) {}
   }, []);
 
-  const handlePnrSearch = async (targetPnr?: string) => {
+  const handlePnrSearch = async (targetPnr?: string, forceDemo = false) => {
     const pnrToSearch = targetPnr || pnrInput;
     const clean = pnrToSearch.replace(/\D/g, '');
 
@@ -31,16 +32,22 @@ export default function PNRSearchCard() {
 
     setLoading(true);
     setError(null);
+    setAllowDemo(false);
 
     try {
-      const res = await fetch(`/api/pnr-status?pnr=${clean}`);
+      const url = forceDemo 
+        ? `/api/pnr-status?pnr=${clean}&demo=true`
+        : `/api/pnr-status?pnr=${clean}`;
+      
+      const res = await fetch(url);
       const json = await res.json();
 
       if (!res.ok || json.error) {
+        if (json.allowDemo) setAllowDemo(true);
         throw new Error(json.error || 'Failed to fetch PNR status');
       }
 
-      setPnrResult(json.data);
+      setPnrResult(json);
 
       try {
         let list = recentPnrs.filter(p => p !== clean);
@@ -58,12 +65,13 @@ export default function PNRSearchCard() {
   };
 
   const handleSharePnr = async () => {
-    if (!pnrResult) return;
-    const text = `🎟️ PNR Status: ${pnrResult.pnr}\n🚆 Train: ${pnrResult.trainNo} - ${pnrResult.trainName}\n📅 Date: ${pnrResult.date} (${pnrResult.fromCode} ➔ ${pnrResult.toCode})\n📊 Chance: ${pnrResult.confirmationChance}%\n👥 Passengers: ${pnrResult.passengers.map((p: any) => `P${p.passengerNo}: ${p.currentStatus}`).join(', ')}\nCheck on RailSathi App!`;
+    if (!pnrResult?.data) return;
+    const d = pnrResult.data;
+    const text = `🎟️ PNR Status: ${d.pnr}\n🚆 Train: ${d.trainNo} - ${d.trainName}\n📅 Date: ${d.date} (${d.fromCode} ➔ ${d.toCode})\n📊 Chance: ${d.confirmationChance}%\n👥 Passengers: ${d.passengers.map((p: any) => `P${p.passengerNo}: ${p.currentStatus}`).join(', ')}\nCheck on RailSathi App!`;
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: `PNR Status ${pnrResult.pnr}`, text, url: window.location.href });
+        await navigator.share({ title: `PNR Status ${d.pnr}`, text, url: window.location.href });
       } catch (e) {}
     } else {
       navigator.clipboard.writeText(text);
@@ -71,6 +79,8 @@ export default function PNRSearchCard() {
       setTimeout(() => setCopiedShare(false), 2000);
     }
   };
+
+  const pnrData = pnrResult?.data;
 
   return (
     <div className="bg-gradient-to-br from-[#131B2A] via-[#1A263B] to-[#111827] border border-[#2B3E5C] rounded-2xl p-4 sm:p-5 shadow-2xl relative overflow-hidden mt-4">
@@ -88,11 +98,11 @@ export default function PNRSearchCard() {
             <h3 className="text-base sm:text-lg font-black text-white tracking-tight flex items-center gap-2">
               <span>PNR Status & Confirmation Tracker</span>
               <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                AI Predictor
+                Live IRCTC Engine
               </span>
             </h3>
             <p className="text-xs text-gray-400 font-medium">
-              Enter 10-digit PNR for instant status & confirmation chance
+              Enter active 10-digit IRCTC ticket PNR for real-time status
             </p>
           </div>
         </div>
@@ -110,12 +120,12 @@ export default function PNRSearchCard() {
               setError(null);
             }}
             onKeyDown={(e) => e.key === 'Enter' && handlePnrSearch()}
-            placeholder="Enter 10-digit PNR Number (e.g. 2441234567)"
+            placeholder="Enter 10-digit Booked IRCTC PNR"
             className="w-full bg-[#0B0F17] border border-[#2B3E5C] focus:border-emerald-400 rounded-xl px-4 py-3 text-sm font-extrabold text-white placeholder-gray-500 focus:outline-none transition-all shadow-inner tracking-wider"
           />
           {pnrInput && (
             <button
-              onClick={() => { setPnrInput(''); setPnrResult(null); }}
+              onClick={() => { setPnrInput(''); setPnrResult(null); setError(null); }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-1"
             >
               <X className="w-4 h-4" />
@@ -131,22 +141,34 @@ export default function PNRSearchCard() {
           {loading ? (
             <>
               <RefreshCw className="w-4 h-4 animate-spin text-white" />
-              <span>Checking...</span>
+              <span>Fetching IRCTC Data...</span>
             </>
           ) : (
             <>
               <Search className="w-4 h-4 text-white" />
-              <span>Check PNR Status</span>
+              <span>Check Live PNR</span>
             </>
           )}
         </button>
       </div>
 
-      {/* Error Message */}
+      {/* Error Message & Demo Preview Button */}
       {error && (
-        <div className="mb-3 p-2.5 rounded-xl bg-red-950/60 border border-red-500/40 text-red-300 text-xs font-bold flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 flex-shrink-0 text-red-400" />
-          <span>{error}</span>
+        <div className="mb-3 p-3 rounded-xl bg-amber-950/60 border border-amber-500/40 text-amber-200 text-xs font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-400" />
+            <span>{error}</span>
+          </div>
+
+          {allowDemo && (
+            <button
+              onClick={() => handlePnrSearch(undefined, true)}
+              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-black font-black text-xs rounded-lg flex items-center justify-center gap-1.5 flex-shrink-0 shadow transition-all active:scale-95"
+            >
+              <PlayCircle className="w-4 h-4" />
+              <span>Try UI Demo Preview</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -170,33 +192,33 @@ export default function PNRSearchCard() {
       )}
 
       {/* ── PNR RESULT DISPLAY CARD ──────────────────────────────────── */}
-      {pnrResult && (
+      {pnrData && (
         <div className="mt-4 bg-[#0B0F17] border border-[#253752] rounded-2xl p-4 shadow-2xl animate-in fade-in slide-in-from-bottom duration-200">
           
-          {/* Top Banner: Train Name & Charting Status */}
+          {/* Top Banner */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#23354E] gap-2 mb-3">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-base font-black text-white">{pnrResult.trainNo}</span>
+                <span className="text-base font-black text-white">{pnrData.trainNo}</span>
                 <span className="text-gray-400">•</span>
-                <span className="text-sm font-extrabold text-emerald-400">{pnrResult.trainName}</span>
+                <span className="text-sm font-extrabold text-emerald-400">{pnrData.trainName}</span>
               </div>
               <div className="text-xs text-gray-400 font-bold mt-0.5 flex items-center gap-3">
-                <span>{pnrResult.fromCode} ➔ {pnrResult.toCode}</span>
+                <span>{pnrData.fromCode} ➔ {pnrData.toCode}</span>
                 <span>•</span>
-                <span>Date: {pnrResult.date}</span>
+                <span>Date: {pnrData.date}</span>
                 <span>•</span>
-                <span className="text-purple-400">Class: {pnrResult.travelClass}</span>
+                <span className="text-purple-400">Class: {pnrData.travelClass}</span>
               </div>
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
               <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border ${
-                pnrResult.chartPrepared
-                  ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
-                  : 'bg-amber-950/80 text-amber-300 border-amber-500/50'
+                pnrResult.isDemo
+                  ? 'bg-amber-950/80 text-amber-300 border-amber-500/50'
+                  : 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
               }`}>
-                {pnrResult.chartPrepared ? 'Chart Prepared ✅' : 'Chart Not Prepared ⏳'}
+                {pnrResult.isDemo ? 'UI Demo Preview ℹ️' : 'Live IRCTC Server Data ✅'}
               </span>
 
               <button
@@ -217,22 +239,22 @@ export default function PNRSearchCard() {
                 <span>Confirmation Probability Score:</span>
               </span>
               <span className={`text-sm font-black ${
-                pnrResult.confirmationChance >= 80 ? 'text-emerald-400' : pnrResult.confirmationChance >= 50 ? 'text-amber-400' : 'text-red-400'
+                pnrData.confirmationChance >= 80 ? 'text-emerald-400' : pnrData.confirmationChance >= 50 ? 'text-amber-400' : 'text-red-400'
               }`}>
-                {pnrResult.confirmationChance}% ({pnrResult.confirmationChance >= 80 ? 'High Chance' : pnrResult.confirmationChance >= 50 ? 'Medium Chance' : 'Low Chance'})
+                {pnrData.confirmationChance}% ({pnrData.confirmationChance >= 80 ? 'High Chance' : pnrData.confirmationChance >= 50 ? 'Medium Chance' : 'Low Chance'})
               </span>
             </div>
 
             <div className="relative w-full h-2.5 bg-[#1E2B40] rounded-full overflow-hidden">
               <div
                 className={`absolute top-0 bottom-0 left-0 transition-all duration-500 rounded-full ${
-                  pnrResult.confirmationChance >= 80
+                  pnrData.confirmationChance >= 80
                     ? 'bg-gradient-to-r from-emerald-500 to-teal-400'
-                    : pnrResult.confirmationChance >= 50
+                    : pnrData.confirmationChance >= 50
                     ? 'bg-gradient-to-r from-amber-500 to-yellow-400'
                     : 'bg-gradient-to-r from-red-600 to-orange-500'
                 }`}
-                style={{ width: `${pnrResult.confirmationChance}%` }}
+                style={{ width: `${pnrData.confirmationChance}%` }}
               ></div>
             </div>
           </div>
@@ -243,7 +265,7 @@ export default function PNRSearchCard() {
               Passenger Booking & Current Status:
             </div>
 
-            {pnrResult.passengers?.map((p: any, idx: number) => {
+            {pnrData.passengers?.map((p: any, idx: number) => {
               const isConf = p.currentStatus.includes('CNF') || p.currentStatus.includes('CONFIRM');
 
               return (
