@@ -110,8 +110,8 @@ export default function SearchForm({
           {/* SEARCH BUTTON */}
           <button
             type="submit"
-            disabled={!from || !to || !date || isLoading}
-            className="md:w-40 flex-shrink-0 bg-gradient-to-r from-[var(--color-brand-blue)] to-purple-600 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white text-lg font-black rounded-xl transition-all shadow-xl shadow-blue-900/50 flex items-center justify-center gap-2 py-4 md:py-0"
+            disabled={isLoading}
+            className="md:w-40 flex-shrink-0 bg-gradient-to-r from-[var(--color-brand-blue)] to-purple-600 hover:opacity-90 text-white text-lg font-black rounded-xl transition-all shadow-xl shadow-blue-900/50 flex items-center justify-center gap-2 py-4 md:py-0"
           >
             {isLoading
               ? <Loader2 className="w-6 h-6 animate-spin" />
