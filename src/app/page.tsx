@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Route } from '@/types/railway';
 import SearchForm from '@/components/SearchForm';
+import TrainSearchCard from '@/components/TrainSearchCard';
 import PNRSearchCard from '@/components/PNRSearchCard';
 import ResultsSection from '@/components/ResultsSection';
 import LiveLogs from '@/components/LiveLogs';
@@ -311,6 +312,7 @@ export default function Home() {
       }`}>
         <div className="max-w-5xl mx-auto space-y-4">
           <SearchForm onSearch={handleSearch} isLoading={isLoading} initialDate={searchedDate} />
+          <TrainSearchCard onSelectTrain={(tNo, tName) => setSelectedLiveTrain({ trainNumber: tNo, trainName: tName })} />
           <PNRSearchCard />
         </div>
       </div>
