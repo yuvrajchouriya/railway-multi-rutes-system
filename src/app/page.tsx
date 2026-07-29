@@ -337,7 +337,7 @@ export default function Home() {
           />
         ) : (
           /* ── Landing tips ─────────────────────────────── */
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+          <div className="hidden md:grid grid-cols-3 gap-4 mt-8">
             {[
               { icon: '🎯', title: 'Confirm Chance First', desc: 'Routes with highest ticket confirmation probability shown first.' },
               { icon: '🔄', title: 'Smart Connecting', desc: 'When direct trains are full, we find connecting routes via major junctions.' },
