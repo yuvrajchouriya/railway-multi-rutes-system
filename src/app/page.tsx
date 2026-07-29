@@ -5,6 +5,7 @@ import { Route } from '@/types/railway';
 import SearchForm from '@/components/SearchForm';
 import TrainSearchCard from '@/components/TrainSearchCard';
 import PNRSearchCard from '@/components/PNRSearchCard';
+import { apiFetch } from '@/lib/shield';
 import ResultsSection from '@/components/ResultsSection';
 import RouteCard from '@/components/RouteCard';
 import LiveTrainModal from '@/components/LiveTrainModal';
@@ -79,7 +80,7 @@ export default function Home() {
 
     try {
       // Step 1: Fetch Direct Routes immediately
-      const directRes = await fetch(`/api/search?from=${from}&to=${to}&date=${date}&type=direct`);
+      const directRes = await apiFetch(`/api/search?from=${from}&to=${to}&date=${date}&type=direct`);
       const directData = await directRes.json();
       
       if (!directRes.ok || directData.error) throw new Error(directData.error || 'Search failed');
@@ -88,7 +89,7 @@ export default function Home() {
       setResults({ directRoutes: directData.directRoutes || [], connectingRoutes: [] });
 
       // Step 2: Fetch Connecting Routes progressively via NDJSON Stream
-      fetch(`/api/search?from=${from}&to=${to}&date=${date}&type=connecting`)
+      apiFetch(`/api/search?from=${from}&to=${to}&date=${date}&type=connecting`)
         .then(async (res) => {
           if (!res.body) return;
           const reader = res.body.getReader();

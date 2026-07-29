@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { MapPin, X, Loader2 } from 'lucide-react';
 import { Station } from '@/types/railway';
+import { apiFetch } from '@/lib/shield';
 
 interface StationInputProps {
   label: string;
@@ -42,7 +43,7 @@ export default function StationInput({ label, placeholder, value, onChange, id }
     const t = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(`/api/stations?q=${encodeURIComponent(query)}`);
+        const res = await apiFetch(`/api/stations?q=${encodeURIComponent(query)}`);
         if (res.ok) {
           const data: Station[] = await res.json();
           setSuggestions(data);

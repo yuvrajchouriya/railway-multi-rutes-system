@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limiter';
 import { isValidTrainNumber } from '@/lib/validators';
+import { verifyApiKey } from '@/lib/shield';
 
 // Server-side Speed Engine for Live Train Running Status (RailRadar Direct + 2-Min Speed Cache)
 const liveStatusCache = new Map<string, { data: any; timestamp: number }>();
@@ -9,6 +10,12 @@ const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
 export async function GET(request: Request) {
   // ── Rate Limit: 30 requests per minute per IP ─────────────────────
   const ip = getClientIp(request);
+
+  // ── API Shield: Block all requests not from our app ─────────────────────
+  if (!verifyApiKey(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   if (!checkRateLimit(`${ip}:live-status`, 30, 60_000)) {
     return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
   }

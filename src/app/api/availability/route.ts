@@ -3,10 +3,17 @@ import { getClassAvailability } from '@/lib/railway-client';
 import { ClassType } from '@/types/railway';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limiter';
 import { isValidTrainNumber, isValidStationCode, isValidDate, isValidClassType } from '@/lib/validators';
+import { verifyApiKey } from '@/lib/shield';
 
 export async function GET(request: Request) {
   // ── Rate Limit: 20 requests per minute per IP ─────────────────────
   const ip = getClientIp(request);
+
+  // ── API Shield: Block all requests not from our app ─────────────────────
+  if (!verifyApiKey(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   if (!checkRateLimit(`${ip}:availability`, 20, 60_000)) {
     return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
   }

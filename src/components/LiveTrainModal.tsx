@@ -211,7 +211,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     setIsOfflineMode(false);
 
     try {
-      const res = await fetch(`/api/live-status?trainNo=${trainNumber}`);
+      const res = await apiFetch(`/api/live-status?trainNo=${trainNumber}`);
       const json = await res.json();
 
       if (!res.ok || json.error) {

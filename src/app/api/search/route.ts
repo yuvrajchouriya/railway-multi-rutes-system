@@ -3,8 +3,14 @@ import { findRoutes, findDirectRoutes, findConnectingRoutes } from '@/lib/route-
 import { createClient } from '@supabase/supabase-js';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limiter';
 import { isValidStationCode, isValidDate } from '@/lib/validators';
+import { verifyApiKey } from '@/lib/shield';
 
 export async function GET(request: NextRequest) {
+  // ── API Shield: Block all requests not from our app ─────────────────────
+  if (!verifyApiKey(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   // ── Rate Limit: 15 searches per minute per IP ─────────────────────
   const ip = getClientIp(request);
   if (!checkRateLimit(`${ip}:search`, 15, 60_000)) {

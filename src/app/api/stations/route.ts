@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import stations from '../../../data/stations.json';
 import Fuse from 'fuse.js';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limiter';
+import { verifyApiKey } from '@/lib/shield';
 
 const STATION_ALIASES: Record<string, string[]> = {
   'kashmir': ['SVDK', 'JAT', 'SINA'],
@@ -49,6 +50,12 @@ const VIRTUAL_CITY_GROUPS = [
 export async function GET(request: NextRequest) {
   // ── Rate Limit: 60 autocomplete requests per minute per IP ────────
   const ip = getClientIp(request);
+
+  // ── API Shield: Block all requests not from our app ─────────────────────
+  if (!verifyApiKey(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   if (!checkRateLimit(`${ip}:stations`, 60, 60_000)) {
     return NextResponse.json([], { status: 429 });
   }

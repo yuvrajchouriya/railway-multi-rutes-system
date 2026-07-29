@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Route, RouteTag } from '@/types/railway';
+import { apiFetch } from '@/lib/shield';
 import RouteCard from './RouteCard';
 import { Train, SlidersHorizontal } from 'lucide-react';
 
@@ -98,7 +99,7 @@ export default function ResultsSection({
         }
 
         try {
-          const res = await fetch(`/api/fares?trainNo=${leg.trainNumber}&from=${leg.fromStation.code}&to=${leg.toStation.code}&date=${apiDate}`);
+          const res = await apiFetch(`/api/fares?trainNo=${leg.trainNumber}&from=${leg.fromStation.code}&to=${leg.toStation.code}&date=${apiDate}`);
           if (res.ok) {
             const data = await res.json();
             if (data.success && data.data) {

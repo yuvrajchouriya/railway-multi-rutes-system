@@ -1,4 +1,5 @@
 'use client';
+import { apiFetch } from '@/lib/shield';
 
 import { useState, useEffect } from 'react';
 import { Ticket, Search, RefreshCw, CheckCircle, AlertCircle, Share2, Sparkles, User, Calendar, MapPin, ChevronRight, X, Clock, PlayCircle } from 'lucide-react';
@@ -39,7 +40,7 @@ export default function PNRSearchCard() {
         ? `/api/pnr-status?pnr=${clean}&demo=true`
         : `/api/pnr-status?pnr=${clean}`;
       
-      const res = await fetch(url);
+      const res = await apiFetch(url);
       const json = await res.json();
 
       if (!res.ok || json.error) {
