@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { X, RefreshCw, Train, MapPin, AlertCircle, Calendar, Bell, Share2, ChevronDown, Check, MessageSquare, ChevronUp, Heart, Volume2, VolumeX, CheckCircle, Navigation, Gauge, Zap, Compass, ShieldAlert, Utensils, WifiOff, ShoppingBag, ExternalLink } from 'lucide-react';
+import { X, RefreshCw, Train, MapPin, AlertCircle, Calendar, Bell, Share2, ChevronDown, Check, MessageSquare, ChevronUp, Heart, Volume2, VolumeX, CheckCircle, Navigation, Gauge, Zap, Compass, ShieldAlert, WifiOff } from 'lucide-react';
 
 interface LiveTrainModalProps {
   trainNumber: string;
@@ -19,7 +19,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
   const [showCoachModal, setShowCoachModal] = useState(false);
   const [showAlarmModal, setShowAlarmModal] = useState(false);
   const [showSpeedometerModal, setShowSpeedometerModal] = useState(false);
-  const [showFoodModal, setShowFoodModal] = useState(false);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
   const [isWishlisted, setIsWishlisted] = useState(false);
@@ -36,7 +35,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
   // Selected Coach for Detailed Info
   const [selectedCoach, setSelectedCoach] = useState<string | null>(null);
 
-  // ── ⚡ ROBUST HARDWARE GPS SPEEDOMETER SENSOR WITH SPEEDOMETER FIX ───────
+  // ── ⚡ ROBUST HARDWARE GPS SPEEDOMETER SENSOR ─────────────────────────────
   const [currentSpeedKmH, setCurrentSpeedKmH] = useState<number | null>(null);
   const [maxSpeedKmH, setMaxSpeedKmH] = useState<number>(0);
   const [gpsStatus, setGpsStatus] = useState<'off' | 'connecting' | 'active' | 'denied' | 'error'>('off');
@@ -64,7 +63,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
     setGpsStatus('connecting');
 
-    // Trigger instant permission dialog & initial position fix
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setGpsStatus('active');
@@ -89,7 +87,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
       { enableHighAccuracy: true, timeout: 5000 }
     );
 
-    // Continuous watchPosition for live updates
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         setGpsStatus('active');
@@ -154,7 +151,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     };
   }, [showSpeedometerModal]);
 
-  // Demo speed simulation for stationary laptop testing
   useEffect(() => {
     let interval: any;
     if (demoSpeedMode) {
@@ -217,7 +213,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     } catch (e) {}
   };
 
-  // ── 📱 POINT 6: OFFLINE TIMETABLE CACHING & LOAD ────────────────────────
+  // ── 📱 OFFLINE TIMETABLE CACHING & LOAD ──────────────────────────────────
   const fetchLiveStatus = async () => {
     setLoading(true);
     setError(null);
@@ -233,7 +229,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
       setData(json.data);
 
-      // Save to Offline Cache
       try {
         localStorage.setItem(`offline_cached_route_${trainNumber}`, JSON.stringify(json.data));
       } catch (e) {}
@@ -269,7 +264,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
         });
       }
     } catch (err: any) {
-      // Attempt Offline Cache Load
       try {
         const cached = localStorage.getItem(`offline_cached_route_${trainNumber}`);
         if (cached) {
@@ -458,9 +452,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     return { label: 'High Speed Express! 🟢', color: 'text-emerald-400 animate-pulse', bg: 'bg-emerald-500/20' };
   };
 
-  // Halt stations list for food stalls guide
-  const haltStations = uniqueRoute.filter((s: any) => s.isHalt !== false);
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="bg-[#0B0F17] border border-[#233148] rounded-none sm:rounded-2xl w-full max-w-2xl h-full sm:h-[92vh] flex flex-col shadow-2xl overflow-hidden text-white font-sans relative">
@@ -504,7 +495,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           </div>
         </div>
 
-        {/* ── 📱 POINT 6: OFFLINE SAVED MODE BANNER ────────────────────── */}
+        {/* ── 📱 OFFLINE SAVED MODE BANNER ────────────────────────────── */}
         {isOfflineMode && (
           <div className="bg-gradient-to-r from-amber-600 to-orange-600 px-4 py-2 text-white font-extrabold text-xs flex items-center justify-between z-30 shadow-lg">
             <div className="flex items-center gap-2">
@@ -517,7 +508,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           </div>
         )}
 
-        {/* ── Top Feature Action Pills Bar (Today, Speedometer, Food, Alarm, Coach, Share) ── */}
+        {/* ── Top Feature Action Pills Bar (Today, Speedometer, Alarm, Coach, Share) ── */}
         <div className="bg-[#121927] px-4 py-2 border-b border-[#24334B] flex items-center gap-2 overflow-x-auto scrollbar-hide relative z-20">
           <div className="relative">
             <button
@@ -561,15 +552,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           >
             <Gauge className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
             <span>Speedometer ⚡</span>
-          </button>
-
-          {/* 🍔 POINT 5: STATION FOOD STALLS BUTTON */}
-          <button
-            onClick={() => setShowFoodModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-950 to-amber-950 hover:from-orange-900 hover:to-amber-900 text-amber-300 border border-amber-500/50 text-xs font-black transition-all flex-shrink-0 shadow-[0_0_10px_rgba(245,158,11,0.4)]"
-          >
-            <Utensils className="w-3.5 h-3.5 text-amber-400" />
-            <span>Station Food 🍔</span>
           </button>
 
           {/* ⏰ GPS ALARM BUTTON */}
@@ -731,20 +713,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                           <span className={`text-sm sm:text-base truncate ${isHalt ? 'font-extrabold text-white' : 'font-bold text-slate-100'}`}>
                             {stn.stationName}
                           </span>
-
-                          {isHalt && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setShowFoodModal(true);
-                              }}
-                              className="p-1 rounded-md bg-amber-950/80 hover:bg-amber-900 text-amber-300 border border-amber-500/40 text-[10px] font-bold flex items-center gap-1 shadow"
-                              title="Station Food Stalls Guide"
-                            >
-                              <Utensils className="w-3 h-3 text-amber-400" />
-                              <span className="hidden sm:inline">Food</span>
-                            </button>
-                          )}
                           
                           {isHalt && subCount > 0 && (
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 flex items-center gap-1 flex-shrink-0 shadow">
@@ -889,76 +857,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                 className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl text-xs transition-colors shadow"
               >
                 Close Speedometer
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── 🍔 POINT 5: STATION FOOD STALLS & E-CATERING GUIDE MODAL ──── */}
-        {showFoodModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-            <div className="bg-[#121927] border border-[#2B3E5C] rounded-2xl p-5 max-w-lg w-full shadow-2xl text-white relative max-h-[85vh] flex flex-col">
-              <div className="flex items-center justify-between pb-3 border-b border-[#24334B] mb-3">
-                <h3 className="text-base font-black flex items-center gap-2 text-amber-400">
-                  <Utensils className="w-5 h-5 text-amber-400" />
-                  <span>Station Food Stalls & E-Catering Guide</span>
-                </h3>
-                <button onClick={() => setShowFoodModal(false)} className="p-1 rounded-full hover:bg-white/10 text-gray-300">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <p className="text-xs text-gray-300 mb-3">
-                Order fresh food directly to your seat at upcoming halt stations via IRCTC E-Catering & Swiggy:
-              </p>
-
-              <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-                {haltStations.map((stn: any, i: number) => (
-                  <div key={stn.stationCode || i} className="bg-[#0B0F17] p-3.5 rounded-xl border border-[#202E44]">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-black text-white">{stn.stationName}</span>
-                        <span className="text-xs text-gray-400">({stn.stationCode})</span>
-                      </div>
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40">
-                        {stn.haltMinutes || 5} Mins Halt
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-xs font-medium text-gray-300 mb-3">
-                      <div className="flex items-center gap-1.5 bg-[#141D2B] p-2 rounded-lg border border-[#24334B]">
-                        <span>🍲 IRCTC Jan Aahar Stall</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 bg-[#141D2B] p-2 rounded-lg border border-[#24334B]">
-                        <span>🍕 Domino's / Swiggy Food</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 bg-[#141D2B] p-2 rounded-lg border border-[#24334B]">
-                        <span>🍱 Haldiram Express Thali</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 bg-[#141D2B] p-2 rounded-lg border border-[#24334B]">
-                        <span>☕ Tea, Samosa & Poha</span>
-                      </div>
-                    </div>
-
-                    <a
-                      href={`https://www.ecatering.irctc.co.in/search?pnr=${trainNumber}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full py-2 bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-500 hover:to-orange-400 text-black font-black rounded-lg text-xs flex items-center justify-center gap-1.5 shadow transition-all active:scale-95"
-                    >
-                      <ShoppingBag className="w-3.5 h-3.5 text-black" />
-                      <span>Order Food at {stn.stationCode}</span>
-                      <ExternalLink className="w-3 h-3 text-black" />
-                    </a>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                onClick={() => setShowFoodModal(false)}
-                className="mt-3 w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl text-xs transition-colors shadow"
-              >
-                Close Food Guide
               </button>
             </div>
           </div>
