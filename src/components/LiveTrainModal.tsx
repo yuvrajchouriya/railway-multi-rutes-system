@@ -34,7 +34,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
   // Selected Coach for Detailed Info
   const [selectedCoach, setSelectedCoach] = useState<string | null>(null);
 
-  // ── ⚡ 100% REAL LIVE HARDWARE GPS SPEEDOMETER SENSOR (ZERO DUMMY DATA) ──
+  // ── ⚡ 100% REAL LIVE HARDWARE GPS SPEEDOMETER SENSOR ─────────────────────
   const [currentSpeedKmH, setCurrentSpeedKmH] = useState<number | null>(null);
   const [maxSpeedKmH, setMaxSpeedKmH] = useState<number>(0);
   const [gpsStatus, setGpsStatus] = useState<'off' | 'connecting' | 'active' | 'denied' | 'error'>('off');
@@ -70,7 +70,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
         let calculatedKmH = 0;
 
-        // Use hardware GPS speed if satellite provides it
         if (position.coords.speed !== null && position.coords.speed !== undefined && !isNaN(position.coords.speed)) {
           calculatedKmH = Math.round(position.coords.speed * 3.6);
         } else if (lastPosRef.current) {
@@ -326,10 +325,20 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     });
   };
 
+  // ── 🛡️ ROUTE DEDUPLICATION FILTER (Filters out duplicate stations) ────────
+  const rawRoute = data?.route || [];
+  const uniqueRoute = rawRoute.filter((stn: any, index: number, arr: any[]) => {
+    if (index === 0) return true;
+    const prev = arr[index - 1];
+    const isSameCode = stn.stationCode && prev.stationCode && stn.stationCode === prev.stationCode;
+    const isSameName = stn.stationName && prev.stationName && stn.stationName === prev.stationName;
+    return !isSameCode && !isSameName;
+  });
+
   let sectionCounter = 0;
   const sectionCounts: Record<number, number> = {};
 
-  const processedRoute = data?.route ? data.route.map((stn: any) => {
+  const processedRoute = uniqueRoute.map((stn: any) => {
     if (stn.isHalt) {
       sectionCounter++;
       sectionCounts[sectionCounter] = 0;
@@ -338,11 +347,11 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     }
     const secId = sectionCounter === 0 ? 1 : sectionCounter;
     return { ...stn, sectionId: secId };
-  }) : [];
+  });
 
   let currentSeq = data?.currentLocation?.sequence;
-  if (!currentSeq && data?.route && data?.currentLocation?.stationCode) {
-    const match = data.route.find((s: any) => s.stationCode === data.currentLocation.stationCode);
+  if (!currentSeq && uniqueRoute.length > 0 && data?.currentLocation?.stationCode) {
+    const match = uniqueRoute.find((s: any) => s.stationCode === data.currentLocation.stationCode);
     if (match) currentSeq = match.sequence;
   }
   if (!currentSeq) currentSeq = 1;
@@ -355,14 +364,13 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     return expandedSections.has(stn.sectionId);
   });
 
-  const routeList = data?.route || [];
-  const nextHalt = routeList.find((s: any) => s.sequence > currentSeq && s.isHalt) || routeList[routeList.length - 1];
-  const lastHalt = routeList[routeList.length - 1];
-  const firstHalt = routeList[0];
+  const nextHalt = uniqueRoute.find((s: any) => s.sequence > currentSeq && s.isHalt) || uniqueRoute[uniqueRoute.length - 1];
+  const lastHalt = uniqueRoute[uniqueRoute.length - 1];
+  const firstHalt = uniqueRoute[0];
 
   const calcProgressPct = () => {
-    if (!lastHalt || !firstHalt || routeList.length === 0) return 50;
-    return Math.min(100, Math.max(5, (currentSeq / routeList.length) * 100));
+    if (!lastHalt || !firstHalt || uniqueRoute.length === 0) return 50;
+    return Math.min(100, Math.max(5, (currentSeq / uniqueRoute.length) * 100));
   };
 
   const rawCoachStr = data?.train?.coachPosition || data?.coachPosition || 'ENG-SLRD-GS-GS-S1-S2-S3-S4-S5-PC-B1-B2-B3-B4-A1-GS-SLRD';
@@ -581,7 +589,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
                   return (
                     <div
-                      key={stn.stationCode || idx}
+                      key={`${stn.stationCode || 'stn'}-${stn.sequence || idx}`}
                       onClick={() => toggleSection(stn.sectionId)}
                       className={`relative flex items-center justify-between py-3.5 px-3 transition-colors cursor-pointer ${
                         isHalt
@@ -693,7 +701,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                 </button>
               </div>
 
-              {/* Status Badge */}
               <div className="mb-4 flex items-center justify-between text-xs font-bold">
                 <span className="text-gray-400">GPS Connection:</span>
                 {gpsStatus === 'active' && (
@@ -721,11 +728,8 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                 )}
               </div>
 
-              {/* Neon Speed Gauge Dial */}
               <div className="flex flex-col items-center justify-center my-6 relative">
                 <div className="w-48 h-48 rounded-full border-4 border-[#24334B] bg-gradient-to-tr from-[#0B0F17] via-[#162134] to-[#0D1421] shadow-[0_0_30px_rgba(6,182,212,0.3)] flex flex-col items-center justify-center relative overflow-hidden">
-                  
-                  {/* Gauge Arc Glow */}
                   <div className="absolute inset-2 rounded-full border-2 border-cyan-500/30 border-t-cyan-400 border-r-cyan-400 pointer-events-none"></div>
 
                   <Zap className="w-6 h-6 text-cyan-400 mb-1 animate-pulse" />
@@ -739,13 +743,11 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                   </div>
                 </div>
 
-                {/* Speed Category Label */}
                 <div className={`mt-4 px-4 py-1.5 rounded-full text-xs font-black border ${getSpeedCategory(currentSpeedKmH).bg} ${getSpeedCategory(currentSpeedKmH).color}`}>
                   {getSpeedCategory(currentSpeedKmH).label}
                 </div>
               </div>
 
-              {/* Stats Bar */}
               <div className="grid grid-cols-2 gap-3 mb-4 text-center">
                 <div className="bg-[#0B0F17] p-3 rounded-xl border border-[#24334B]">
                   <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Max Speed Recorded</div>
@@ -758,7 +760,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                 </div>
               </div>
 
-              {/* Offline Banner */}
               <div className="p-2.5 rounded-xl bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 text-[11px] font-bold flex items-center gap-2 mb-4">
                 <Compass className="w-4 h-4 text-cyan-400 flex-shrink-0" />
                 <span>Works 100% Offline inside train without internet data!</span>
@@ -797,7 +798,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                   onChange={(e) => setTargetAlarmStation(e.target.value)}
                   className="w-full bg-[#0D1420] border border-[#2A3C58] rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-amber-400"
                 >
-                  {data?.route?.map((s: any) => (
+                  {uniqueRoute.map((s: any) => (
                     <option key={s.stationCode || s.sequence} value={s.stationCode || s.stationName}>
                       {s.stationName} ({s.stationCode}) - {s.distanceKm || s.distance || 0} km
                     </option>
