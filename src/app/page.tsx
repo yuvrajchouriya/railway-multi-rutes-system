@@ -6,7 +6,6 @@ import SearchForm from '@/components/SearchForm';
 import TrainSearchCard from '@/components/TrainSearchCard';
 import PNRSearchCard from '@/components/PNRSearchCard';
 import ResultsSection from '@/components/ResultsSection';
-import LiveLogs from '@/components/LiveLogs';
 import RouteCard from '@/components/RouteCard';
 import LiveTrainModal from '@/components/LiveTrainModal';
 import { Train, Heart, X, Trash2 } from 'lucide-react';

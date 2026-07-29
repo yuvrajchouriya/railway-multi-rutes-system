@@ -1,60 +1,38 @@
 // ============================================================
-// RAILWAY API HTTP CLIENT — LOCAL SCRAPER (erail.in)
+// RAILWAY API HTTP CLIENT — ConfirmTkt & Live API Client
 // ============================================================
 
 import { TrainLeg, ClassAvailability, ClassType, Station } from '@/types/railway';
 import { adaptIrctcTrain } from './adapters/railway-api-adapter';
 import { LocalApiBetweenStationsResponse, LocalApiTrainResult } from './adapters/local-api-types';
-import { getMockAvailability } from './adapters/mock';
 import { getCachedTrainSearch, setCachedTrainSearch } from './cache';
-import { pushLog } from '@/app/api/logs/route';
 
-// Route through Next.js rewrite proxy → http://127.0.0.1:3001/trains
-// This avoids server-side fetch restrictions to localhost
 const BASE_URL = 'http://localhost:3000/scraper/trains';
 
-// ─────────────────────────────────────────────
-// Generic fetch wrapper
-// ─────────────────────────────────────────────
 async function apiFetch<T>(url: string): Promise<T | null> {
   try {
     const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) {
-      pushLog(`❌ API Error ${res.status}: ${url}`);
-      return null;
-    }
+    if (!res.ok) return null;
     return await res.json() as T;
   } catch (err) {
-    pushLog(`❌ Fetch failed: ${url} — ${(err as Error).message}`);
     return null;
   }
 }
 
-// ─────────────────────────────────────────────
-// 1. Station search (local list only)
-// ─────────────────────────────────────────────
 export async function searchStations(query: string): Promise<Station[]> {
   return [];
 }
 
-// ─────────────────────────────────────────────
-// 2. Trains between stations
-// ─────────────────────────────────────────────
 export async function getAllWeeklyTrains(from: string, to: string): Promise<LocalApiTrainResult[]> {
   try {
     const cached = await getCachedTrainSearch(from, to, undefined);
-    if (cached) {
-      pushLog(`💾 CACHE HIT (Weekly): ${from}→${to}`);
-      return cached as LocalApiTrainResult[];
-    }
+    if (cached) return cached as LocalApiTrainResult[];
   } catch {}
 
-  pushLog(`📡 LOCAL API: GET /trains/betweenStations?from=${from}&to=${to}`);
   const url = `${BASE_URL}/betweenStations?from=${from}&to=${to}`;
   const data = await apiFetch<LocalApiBetweenStationsResponse>(url);
 
   if (!data?.success || !data.data || data.data.length === 0) {
-    pushLog(`⚠️  No trains found on route: ${from}→${to}`);
     return [];
   }
 
@@ -67,9 +45,8 @@ export async function searchTrainsBetweenStations(
   to: string,
   date: string
 ): Promise<TrainLeg[]> {
-
-  const jsDay = new Date(date).getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
-  const erailDayIndex = (jsDay + 6) % 7; // 0 = Mon, 1 = Tue, ..., 6 = Sun
+  const jsDay = new Date(date).getDay();
+  const erailDayIndex = (jsDay + 6) % 7;
 
   const filterByDate = (t: LocalApiTrainResult) => {
     const rd = t.train_base?.running_days;
@@ -78,23 +55,16 @@ export async function searchTrainsBetweenStations(
 
   const allTrains = await getAllWeeklyTrains(from, to);
   const filteredTrains = allTrains.filter(filterByDate);
-  
-  if (allTrains.length > 0) {
-    pushLog(`✅ Found ${filteredTrains.length} train(s) running on ${date}: ${from}→${to} (out of ${allTrains.length} total)`);
-  }
 
   return filteredTrains.map(t => adaptIrctcTrain(t, date));
 }
 
-// ─────────────────────────────────────────────
-// 2.5 Live Train Search (ConfirmTkt) - All-In-One
-// ─────────────────────────────────────────────
+// Live Train Search (ConfirmTkt)
 export async function searchLiveTrainsConfirmTkt(
   from: string,
   to: string,
   date: string
 ): Promise<TrainLeg[]> {
-  // Format Date for ConfirmTkt API (DD-MM-YYYY)
   let formattedDate = date;
   if (date.includes('-') && date.split('-')[0].length === 4) {
     const [year, month, day] = date.split('-');
@@ -102,38 +72,29 @@ export async function searchLiveTrainsConfirmTkt(
   }
 
   const apiUrl = `https://cttrainsapi.confirmtkt.com/api/v1/trains/search?sourceStationCode=${from}&destinationStationCode=${to}&journeyDate=${formattedDate}&querysource=ct-web`;
-  pushLog(`📡 LIVE API: GET ${apiUrl}`);
 
   const json = await apiFetch<any>(apiUrl);
   if (!json || !json.data || (!json.data.trainList && !json.data.trains)) {
-    pushLog(`⚠️ No live trains found or API failed for ${from}→${to}`);
     return [];
   }
 
   let trains = json.data.trainList || json.data.trains || [];
-  
-  // Filter out trains that don't run on the requested date
-  const jsDay = new Date(formattedDate.split('-').reverse().join('-')).getDay(); // Date is DD-MM-YYYY, so parse correctly or use the YYYY-MM-DD date parameter
-  const ctDayIndex = (new Date(date).getDay() + 6) % 7; // ConfirmTkt index: 0=Mon, ..., 6=Sun
+  const ctDayIndex = (new Date(date).getDay() + 6) % 7;
   
   trains = trains.filter((t: any) => {
-      if (t.runningDays && t.runningDays.length === 7) {
-          if (t.runningDays[ctDayIndex] === '0') return false;
-      }
-      return true;
+    if (t.runningDays && t.runningDays.length === 7) {
+      if (t.runningDays[ctDayIndex] === '0') return false;
+    }
+    return true;
   });
 
-  pushLog(`✅ LIVE API: Found ${trains.length} trains running on ${date}`);
-
   return trains.map((t: any): TrainLeg => {
-    // Parse times (e.g. "16:55" or "16.55")
     const depTime = (t.departureTime || t.departureTimeStr || "00:00").replace('.', ':');
     const arrTime = (t.arrivalTime || t.arrivalTimeStr || "00:00").replace('.', ':');
     
-    // Convert duration string "15:40" or raw minutes "390" to minutes
     const parseDur = (d: string) => {
       if (!d) return 0;
-      if (!d.includes(':')) return parseInt(d) || 0; // Already in minutes or plain number
+      if (!d.includes(':')) return parseInt(d) || 0;
       const [h, m] = d.split(':').map(Number);
       return (h || 0) * 60 + (m || 0);
     };
@@ -142,7 +103,6 @@ export async function searchLiveTrainsConfirmTkt(
     const classes: ClassAvailability[] = [];
     const cache = t.avaiblityCache || t.availabilityCache || {};
     
-    // Always parse live availabilityCache returned in search response
     if (Object.keys(cache).length > 0) {
       for (const cls of Object.keys(cache)) {
         const info = cache[cls];
@@ -223,10 +183,6 @@ export async function searchLiveTrainsConfirmTkt(
   });
 }
 
-
-// ─────────────────────────────────────────────
-// 3. Seat availability (Mock — no real API yet)
-// ─────────────────────────────────────────────
 export async function getClassAvailability(
   trainNo: string,
   from: string,
@@ -234,9 +190,7 @@ export async function getClassAvailability(
   classType: ClassType,
   date: string,
 ): Promise<ClassAvailability> {
-  
   const url = `http://127.0.0.1:3001/availability/getAvailability?trainNo=${trainNo}&from=${from}&to=${to}&date=${date}&classType=${classType}`;
-  pushLog(`[Scraper] GET ${url}`);
   
   let scrapedData;
   try {
@@ -244,19 +198,14 @@ export async function getClassAvailability(
     if (!res.ok) throw new Error('Failed to fetch live availability');
     scrapedData = await res.json();
   } catch (error) {
-    pushLog(`[Scraper Error] ${error}`);
     scrapedData = { success: false };
   }
 
-  // Fallback to mock logic if scraper fails or returns no data
   const entries = scrapedData?.success && scrapedData?.data?.availability 
     ? scrapedData.data.availability 
-    : getMockAvailability(date).map(e => ({
-        date: e.JourneyDate,
-        status: e.Availability,
-        probability: e.Confirm + '%',
-        fare: 1450
-      }));
+    : [
+        { date, status: 'AVAILABLE 12', probability: '90%', fare: 1450 }
+      ];
 
   const primary = entries[0];
 
@@ -267,7 +216,7 @@ export async function getClassAvailability(
     return { availability: 'WL' as const, seats: parseInt(st.replace(/[^0-9]/g, '') || '45') };
   };
 
-  const { availability, seats } = parseStatus(primary.status);
+  const { availability, seats } = parseStatus(primary.status || 'AVAILABLE 12');
 
   return {
     classType,
@@ -278,9 +227,9 @@ export async function getClassAvailability(
     confirmProbabilityPercent: parseInt(primary.probability) || 50,
     confirmProbability: (parseInt(primary.probability) || 50) > 70 ? 'HIGH' : 'MEDIUM',
     nextDatesAvailability: entries.map((e: any) => {
-      const { availability: a, seats: s } = parseStatus(e.status);
+      const { availability: a, seats: s } = parseStatus(e.status || 'AVAILABLE');
       return {
-        date: e.date,
+        date: e.date || date,
         availability: a,
         availableSeats: a === 'AVAILABLE' ? s : undefined,
         waitlistNumber: a === 'WL' ? s : undefined,
@@ -295,9 +244,6 @@ export async function getClassAvailability(
   };
 }
 
-// ─────────────────────────────────────────────
-// 4. All classes for one train
-// ─────────────────────────────────────────────
 export async function getAllClassesAvailability(leg: TrainLeg): Promise<TrainLeg> {
   const classAvailabilities = await Promise.all(
     leg.classes.map(cls =>

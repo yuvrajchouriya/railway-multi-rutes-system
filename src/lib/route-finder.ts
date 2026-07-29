@@ -4,7 +4,6 @@
 
 import { Route, TrainLeg } from '@/types/railway';
 import { searchLiveTrainsConfirmTkt } from './railway-client';
-import { pushLog } from '@/app/api/logs/route';
 import { calculateDistanceKm } from './geo';
 
 // Comprehensive pool of major railway junctions across India
@@ -49,8 +48,6 @@ export async function findDirectRoutes(
   const fromStations = CITY_GROUPS[from] || [from];
   const toStations = CITY_GROUPS[to] || [to];
 
-  pushLog(`🔍 Direct search: ${from} ➔ ${to} on ${date}`);
-
   let allDirectTrains: TrainLeg[] = [];
   
   const searchPromises = [];
@@ -64,8 +61,6 @@ export async function findDirectRoutes(
   resultsArray.forEach(trains => {
     allDirectTrains = allDirectTrains.concat(trains);
   });
-
-  pushLog(`🟢 Direct trains: ${allDirectTrains.length} found`);
 
   const allDirectRoutes: Route[] = allDirectTrains.map((leg, idx) => ({
     id: `direct-${leg.trainNumber}-${idx}`,
@@ -212,13 +207,10 @@ export async function findConnectingRoutes(
 
   // Rule: Skip connecting routes if direct trains exist AND trip distance is under 200 km
   if (hasDirectTrains && tripDistance !== Infinity && tripDistance < LONG_DISTANCE_KM) {
-    pushLog(`⏩ Short trip (< 200km) with direct trains found, skipping connecting routes`);
     return connectingRoutes;
   }
 
   const maxAllowedDuration = getMaxAllowedDurationMinutes(fastestDirectDurationMinutes, tripDistance);
-
-  pushLog(`🔄 Multi-route search: ${from} ➔ ${to} on ${date} (Max layover: 6h, Max allowed total time: ${(maxAllowedDuration/60).toFixed(1)}h)`);
 
   const junctionScores = JUNCTIONS
     .filter(j => j !== primaryFrom && j !== primaryTo)
@@ -315,7 +307,6 @@ export async function findConnectingRoutes(
   }
 
   connectingRoutes.sort((a, b) => a.totalDurationMinutes - b.totalDurationMinutes);
-  pushLog(`✅ Found ${connectingRoutes.length} practical connecting routes within time cap (${(maxAllowedDuration/60).toFixed(1)}h)`);
   return connectingRoutes;
 }
 
