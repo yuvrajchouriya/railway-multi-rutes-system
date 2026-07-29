@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { X, RefreshCw, Train, MapPin, AlertCircle, Calendar, Bell, Share2, ChevronDown, Check, MessageSquare, ChevronUp, Heart, Volume2, VolumeX, CheckCircle, Navigation, Gauge, Zap, Compass, ShieldAlert, WifiOff } from 'lucide-react';
+import ProximityNotificationToast from './ProximityNotificationToast';
 
 interface LiveTrainModalProps {
   trainNumber: string;
@@ -454,6 +455,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+      <ProximityNotificationToast activeRoute={uniqueRoute} currentSeq={currentSeq} />
       <div className="bg-[#0B0F17] border border-[#233148] rounded-none sm:rounded-2xl w-full max-w-2xl h-full sm:h-[92vh] flex flex-col shadow-2xl overflow-hidden text-white font-sans relative">
         
         {/* ── Top Header ─────────────────────────────────────────── */}
