@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowUpDown, Search, CalendarDays, Loader2 } from 'lucide-react';
+import { ArrowUpDown, Loader2 } from 'lucide-react';
 import StationInput from './StationInput';
 import { Station } from '@/types/railway';
 
@@ -43,71 +43,80 @@ export default function SearchForm({
 
   return (
     <div className="space-y-4">
-      <form onSubmit={submit} className="bg-[#121824] border border-[#233148] rounded-2xl p-4 sm:p-5 shadow-xl text-white">
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 lg:gap-2 relative">
+      <form
+        onSubmit={submit}
+        className="bg-[var(--color-brand-navy-card)] border border-[#3A506B] rounded-2xl p-6 shadow-2xl relative mt-4"
+      >
+        <div className="flex flex-col md:flex-row items-stretch gap-4 relative">
           
-          {/* From Station */}
-          <div className="flex-1 relative bg-[#182235] border border-[#2C3E5A] rounded-xl px-3 py-1 focus-within:border-cyan-500/50 transition-colors">
-            <StationInput
-              id="from-station-input"
-              label="From Station"
-              placeholder="Search source (e.g. NGP)"
-              value={from}
-              onChange={setFrom}
-            />
-          </div>
-
-          {/* Swap Button */}
-          <div className="flex items-center justify-center -my-1 lg:my-0 lg:-mx-1 z-10">
+          {/* FROM */}
+          <div className="flex-1 bg-[var(--color-brand-navy)] border border-[#3A506B] rounded-xl p-3 hover:border-blue-400 transition-colors relative z-10">
+            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">FROM</label>
+            <StationInput id="from-station" label="" placeholder="From Station" value={from} onChange={setFrom} />
+            
+            {/* SWAP BUTTON */}
             <button
               type="button"
               onClick={swap}
-              className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-500 hover:scale-105 active:scale-95 text-white flex items-center justify-center shadow-lg transition-transform border-2 border-[#121824]"
+              className="absolute z-20 w-8 h-8 flex items-center justify-center rounded-full bg-gradient-to-r from-[var(--color-brand-blue)] to-purple-500 text-white shadow-lg border-2 border-[var(--color-brand-navy-card)] left-1/2 -bottom-6 -translate-x-1/2 md:left-auto md:translate-x-0 md:-right-6 md:top-1/2 md:-translate-y-1/2 md:bottom-auto"
             >
-              <ArrowUpDown className="w-5 h-5 rotate-90 lg:rotate-0" />
+              <ArrowUpDown className="w-4 h-4 md:rotate-90" />
             </button>
           </div>
 
-          {/* To Station */}
-          <div className="flex-1 relative bg-[#182235] border border-[#2C3E5A] rounded-xl px-3 py-1 focus-within:border-cyan-500/50 transition-colors">
-            <StationInput
-              id="to-station-input"
-              label="To Station"
-              placeholder="Search destination (e.g. CAPE)"
-              value={to}
-              onChange={setTo}
+          {/* TO */}
+          <div className="flex-1 bg-[var(--color-brand-navy)] border border-[#3A506B] rounded-xl p-3 hover:border-blue-400 transition-colors">
+            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">TO</label>
+            <StationInput id="to-station" label="" placeholder="To Station" value={to} onChange={setTo} />
+          </div>
+
+          {/* DATE */}
+          <div 
+            className="md:w-52 bg-[var(--color-brand-navy)] border border-[#3A506B] rounded-xl p-3 hover:border-blue-400 transition-colors cursor-pointer relative group flex flex-col justify-center"
+            onClick={() => {
+              const input = document.getElementById('journey-date') as HTMLInputElement;
+              if (input) {
+                if (typeof input.showPicker === 'function') {
+                  try { input.showPicker(); } catch (e) { input.focus(); input.click(); }
+                } else {
+                  input.focus();
+                  input.click();
+                }
+              }
+            }}
+          >
+            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1 cursor-pointer pointer-events-none">DEPARTURE</label>
+            <div className="text-sm md:text-base font-bold text-white truncate pointer-events-none">
+              {(() => {
+                if (!date) return 'Select Date';
+                const d = new Date(date + 'T00:00:00');
+                const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+                const monthName = d.toLocaleDateString('en-US', { month: 'short' });
+                const dayNum = d.getDate();
+                const year = d.getFullYear();
+                return `${dayName}, ${dayNum} ${monthName} ${year}`;
+              })()}
+            </div>
+            <input
+              id="journey-date"
+              type="date"
+              min={today}
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="sr-only"
             />
           </div>
 
-          {/* Date Picker */}
-          <div className="w-full lg:w-48 relative">
-            <label className="absolute top-2 left-3 z-10 text-[10px] font-extrabold text-cyan-400 uppercase tracking-widest">Journey Date</label>
-            <div className="pt-5 pl-3 pr-2 bg-[#182235] border border-[#2C3E5A] rounded-xl flex items-center justify-between text-sm font-bold text-white focus-within:border-cyan-500/50 transition-colors h-[54px]">
-              <input
-                type="date"
-                min={today}
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="bg-transparent border-none text-white focus:outline-none w-full font-mono text-sm [color-scheme:dark]"
-              />
-              <CalendarDays className="w-4 h-4 text-cyan-400 pointer-events-none flex-shrink-0" />
-            </div>
-          </div>
-
-          {/* Search Button */}
+          {/* SEARCH BUTTON */}
           <button
             type="submit"
-            disabled={isLoading || !from || !to}
-            className="w-full lg:w-36 h-[54px] bg-gradient-to-r from-blue-600 to-cyan-500 hover:opacity-90 disabled:opacity-40 disabled:pointer-events-none text-white font-extrabold rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 text-sm tracking-wider"
+            disabled={!from || !to || !date || isLoading}
+            className="md:w-40 flex-shrink-0 bg-gradient-to-r from-[var(--color-brand-blue)] to-purple-600 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white text-lg font-black rounded-xl transition-all shadow-xl shadow-blue-900/50 flex items-center justify-center gap-2 py-4 md:py-0"
           >
-            {isLoading ? (
-              <Loader2 className="w-6 h-6 animate-spin" />
-            ) : (
-              <>
-                <Search className="w-4 h-4" />
-                <span>SEARCH</span>
-              </>
-            )}
+            {isLoading
+              ? <Loader2 className="w-6 h-6 animate-spin" />
+              : 'SEARCH'
+            }
           </button>
         </div>
       </form>
