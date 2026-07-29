@@ -1,16 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { findRoutes, findDirectRoutes, findConnectingRoutes } from '@/lib/route-finder';
 import { createClient } from '@supabase/supabase-js';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limiter';
+import { isValidStationCode, isValidDate } from '@/lib/validators';
 
 export async function GET(request: NextRequest) {
+  // ── Rate Limit: 15 searches per minute per IP ─────────────────────
+  const ip = getClientIp(request);
+  if (!checkRateLimit(`${ip}:search`, 15, 60_000)) {
+    return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
+  }
+
   const searchParams = request.nextUrl.searchParams;
-  const from = searchParams.get('from');
-  const to = searchParams.get('to');
+  const from = searchParams.get('from')?.toUpperCase();
+  const to = searchParams.get('to')?.toUpperCase();
   const date = searchParams.get('date');
   const type = searchParams.get('type');
 
+  // ── Input Validation ─────────────────────────────────────────────
   if (!from || !to || !date) {
     return NextResponse.json({ error: 'Missing from, to, or date parameters' }, { status: 400 });
+  }
+  if (!isValidStationCode(from) || !isValidStationCode(to)) {
+    return NextResponse.json({ error: 'Invalid station code format' }, { status: 400 });
+  }
+  if (!isValidDate(date)) {
+    return NextResponse.json({ error: 'Invalid date format. Use YYYY-MM-DD' }, { status: 400 });
   }
 
   const supabase = createClient(
@@ -22,7 +37,6 @@ export async function GET(request: NextRequest) {
     let results = { directRoutes: [], connectingRoutes: [] };
 
     if (type === 'direct') {
-      // 1. Check DB Cache First for Direct Routes
       const { data: cacheData, error: cacheErr } = await supabase
         .from('saved_routes')
         .select('routes_json')
@@ -36,7 +50,6 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ directRoutes: cacheData.routes_json, source: 'cache' });
       }
 
-      // 2. Cache MISS: Search Live and Save to DB
       const directRoutes = await findDirectRoutes(from, to, date);
       
       if (directRoutes.length > 0) {
@@ -52,7 +65,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ directRoutes });
 
     } else if (type === 'connecting') {
-      // 1. Check DB Cache First for Connecting Routes
       const { data: cacheData, error: cacheErr } = await supabase
         .from('saved_routes')
         .select('routes_json')
@@ -63,20 +75,18 @@ export async function GET(request: NextRequest) {
         .single();
         
       if (!cacheErr && cacheData && Array.isArray(cacheData.routes_json) && cacheData.routes_json.length > 0) {
-         // Cache HIT: Stream instantly from DB
-         const routesArray = cacheData.routes_json as any[];
-         const stream = new ReadableStream({
-           start(controller) {
-             routesArray.forEach((route) => {
-               controller.enqueue(new TextEncoder().encode(JSON.stringify(route) + '\n'));
-             });
-             controller.close();
-           }
-         });
-         return new Response(stream, { headers: { 'Content-Type': 'application/x-ndjson' } });
+        const routesArray = cacheData.routes_json as any[];
+        const stream = new ReadableStream({
+          start(controller) {
+            routesArray.forEach((route) => {
+              controller.enqueue(new TextEncoder().encode(JSON.stringify(route) + '\n'));
+            });
+            controller.close();
+          }
+        });
+        return new Response(stream, { headers: { 'Content-Type': 'application/x-ndjson' } });
       }
 
-      // 2. Cache MISS: Calculate Live, Stream NDJSON, and Save to DB
       const stream = new ReadableStream({
         async start(controller) {
           try {

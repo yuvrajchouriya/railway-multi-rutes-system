@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limiter';
+import { isValidTrainNumber, isValidStationCode, isValidDate } from '@/lib/validators';
 
 // Initialize a service role client to bypass RLS for server-side insertions
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -7,15 +9,31 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function GET(request: Request) {
+  // ── Rate Limit: 20 requests per minute per IP ─────────────────────
+  const ip = getClientIp(request);
+  if (!checkRateLimit(`${ip}:fares`, 20, 60_000)) {
+    return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
+  }
+
   const { searchParams } = new URL(request.url);
   const trainNo = searchParams.get('trainNo');
-  const from = searchParams.get('from');
-  const to = searchParams.get('to');
+  const from = searchParams.get('from')?.toUpperCase();
+  const to = searchParams.get('to')?.toUpperCase();
   let date = searchParams.get('date');
   const forceRefresh = searchParams.get('forceRefresh') === 'true';
 
+  // ── Input Validation ─────────────────────────────────────────────
   if (!trainNo || !from || !to || !date) {
     return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
+  }
+  if (!isValidTrainNumber(trainNo)) {
+    return NextResponse.json({ error: 'Invalid train number' }, { status: 400 });
+  }
+  if (!isValidStationCode(from) || !isValidStationCode(to)) {
+    return NextResponse.json({ error: 'Invalid station code' }, { status: 400 });
+  }
+  if (!isValidDate(date)) {
+    return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
   }
   
   // Format YYYY-MM-DD to DD-MM-YYYY for backend
@@ -151,7 +169,7 @@ export async function GET(request: Request) {
 
       // Only return this train's data to the frontend if it's the requested train
       if (t.trainNumber === trainNo) {
-          console.log("tClasses for train", trainNo, ":", JSON.stringify(tClasses));
+          // tClasses assigned for requested train
           requestedTrainData = t;
           requestedClasses = tClasses;
       }
@@ -403,8 +421,7 @@ export async function GET(request: Request) {
         bulkData: bulkDataMap
     });
 
-  } catch (error) {
-    console.error('Fares fetch/save error:', error);
-    return NextResponse.json({ error: 'Failed to fetch and track availability' }, { status: 500 });
+  } catch (_) {
+    return NextResponse.json({ error: 'Failed to fetch availability data' }, { status: 500 });
   }
 }

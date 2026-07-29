@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import stations from '../../../data/stations.json';
 import Fuse from 'fuse.js';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limiter';
 
 const STATION_ALIASES: Record<string, string[]> = {
   'kashmir': ['SVDK', 'JAT', 'SINA'],
@@ -46,9 +47,19 @@ const VIRTUAL_CITY_GROUPS = [
 ];
 
 export async function GET(request: NextRequest) {
+  // ── Rate Limit: 60 autocomplete requests per minute per IP ────────
+  const ip = getClientIp(request);
+  if (!checkRateLimit(`${ip}:stations`, 60, 60_000)) {
+    return NextResponse.json([], { status: 429 });
+  }
+
   const searchParams = request.nextUrl.searchParams;
   const rawQ = searchParams.get('q') || '';
-  const q = rawQ.trim().toLowerCase();
+
+  // ── Input Validation ─────────────────────────────────────────────
+  // Max 50 chars, strip any HTML/script tags
+  const sanitizedQ = rawQ.trim().slice(0, 50).replace(/<[^>]*>/g, '');
+  const q = sanitizedQ.toLowerCase();
 
   if (!q || q.length < 2) {
     return NextResponse.json([]);

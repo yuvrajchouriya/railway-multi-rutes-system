@@ -29,7 +29,8 @@ export default function Home() {
     try {
       const savedRoutes = localStorage.getItem('saved_wishlist_full_routes');
       let list = savedRoutes ? JSON.parse(savedRoutes) : [];
-      list = list.filter((r: any) => r.id !== routeId);
+      if (!Array.isArray(list)) list = [];
+      list = list.filter((r: any) => r && typeof r.id === 'string' && r.id !== routeId);
       localStorage.setItem('saved_wishlist_full_routes', JSON.stringify(list));
       setSavedFullRoutes(list);
       window.dispatchEvent(new Event('storage'));
@@ -40,7 +41,8 @@ export default function Home() {
     try {
       const saved = localStorage.getItem('saved_wishlist_trains');
       let list = saved ? JSON.parse(saved) : [];
-      list = list.filter((item: any) => (typeof item === 'string' ? item !== trainNo : item.trainNumber !== trainNo));
+      if (!Array.isArray(list)) list = [];
+      list = list.filter((item: any) => (typeof item === 'string' ? item !== trainNo : item && typeof item.trainNumber === 'string' && item.trainNumber !== trainNo));
       localStorage.setItem('saved_wishlist_trains', JSON.stringify(list));
       setWishlistItems(list);
       window.dispatchEvent(new Event('storage'));
@@ -144,8 +146,11 @@ export default function Home() {
               try {
                 const saved = localStorage.getItem('saved_wishlist_trains');
                 const savedRoutes = localStorage.getItem('saved_wishlist_full_routes');
-                setWishlistItems(saved ? JSON.parse(saved) : []);
-                setSavedFullRoutes(savedRoutes ? JSON.parse(savedRoutes) : []);
+                const parsedTrains = saved ? JSON.parse(saved) : [];
+                const parsedRoutes = savedRoutes ? JSON.parse(savedRoutes) : [];
+                // Shape validation before setting state
+                setWishlistItems(Array.isArray(parsedTrains) ? parsedTrains.filter((item: any) => typeof item === 'string' || (item && typeof item.trainNumber === 'string')) : []);
+                setSavedFullRoutes(Array.isArray(parsedRoutes) ? parsedRoutes.filter((r: any) => r && typeof r.id === 'string') : []);
               } catch (e) {}
               setShowWishlistModal(true);
             }}
