@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { X, RefreshCw, Train, MapPin, AlertCircle, Calendar, Bell, Share2, ChevronDown, Check, MessageSquare, ChevronUp, Heart, Volume2, VolumeX, CheckCircle, Navigation } from 'lucide-react';
+import { X, RefreshCw, Train, MapPin, AlertCircle, Calendar, Bell, Share2, ChevronDown, Check, MessageSquare, ChevronUp, Heart, Volume2, VolumeX, CheckCircle, Navigation, Gauge, Zap, Compass, ShieldAlert } from 'lucide-react';
 
 interface LiveTrainModalProps {
   trainNumber: string;
@@ -17,6 +17,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [showCoachModal, setShowCoachModal] = useState(false);
   const [showAlarmModal, setShowAlarmModal] = useState(false);
+  const [showSpeedometerModal, setShowSpeedometerModal] = useState(false);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
   const [isWishlisted, setIsWishlisted] = useState(false);
@@ -32,6 +33,98 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
   // Selected Coach for Detailed Info
   const [selectedCoach, setSelectedCoach] = useState<string | null>(null);
+
+  // ── ⚡ 100% REAL LIVE HARDWARE GPS SPEEDOMETER SENSOR (ZERO DUMMY DATA) ──
+  const [currentSpeedKmH, setCurrentSpeedKmH] = useState<number | null>(null);
+  const [maxSpeedKmH, setMaxSpeedKmH] = useState<number>(0);
+  const [gpsStatus, setGpsStatus] = useState<'off' | 'connecting' | 'active' | 'denied' | 'error'>('off');
+  const gpsWatchIdRef = useRef<number | null>(null);
+  const lastPosRef = useRef<{ lat: number; lng: number; timestamp: number } | null>(null);
+
+  const calcHaversineMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371000;
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  const startGpsSpeedometer = () => {
+    if (!navigator.geolocation) {
+      setGpsStatus('error');
+      return;
+    }
+
+    setGpsStatus('connecting');
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setGpsStatus('active');
+        const now = position.timestamp || Date.now();
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        let calculatedKmH = 0;
+
+        // Use hardware GPS speed if satellite provides it
+        if (position.coords.speed !== null && position.coords.speed !== undefined && !isNaN(position.coords.speed)) {
+          calculatedKmH = Math.round(position.coords.speed * 3.6);
+        } else if (lastPosRef.current) {
+          const distMeters = calcHaversineMeters(lastPosRef.current.lat, lastPosRef.current.lng, lat, lng);
+          const timeSec = (now - lastPosRef.current.timestamp) / 1000;
+          if (timeSec > 0.5) {
+            const mps = distMeters / timeSec;
+            calculatedKmH = Math.round(mps * 3.6);
+          }
+        }
+
+        const finalSpeed = Math.min(180, Math.max(0, calculatedKmH));
+        setCurrentSpeedKmH(finalSpeed);
+        setMaxSpeedKmH((prev) => Math.max(prev, finalSpeed));
+
+        lastPosRef.current = { lat, lng, timestamp: now };
+      },
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          setGpsStatus('denied');
+        } else {
+          setGpsStatus('error');
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+
+    gpsWatchIdRef.current = watchId;
+  };
+
+  const stopGpsSpeedometer = () => {
+    if (gpsWatchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(gpsWatchIdRef.current);
+      gpsWatchIdRef.current = null;
+    }
+    setGpsStatus('off');
+  };
+
+  useEffect(() => {
+    if (showSpeedometerModal) {
+      startGpsSpeedometer();
+    } else {
+      stopGpsSpeedometer();
+    }
+    return () => {
+      if (gpsWatchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(gpsWatchIdRef.current);
+      }
+    };
+  }, [showSpeedometerModal]);
 
   // ── Mobile Single-Back History Handler ──────────────────────────────────
   useEffect(() => {
@@ -96,13 +189,11 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
       setData(json.data);
 
-      // Default alarm station to destination if not set
       if (json.data?.route?.length > 0 && !targetAlarmStation) {
         const lastStn = json.data.route[json.data.route.length - 1];
         setTargetAlarmStation(lastStn.stationCode || lastStn.stationName);
       }
 
-      // ── Auto-Detect Live Location & Auto-Expand Sub-Station Section ──
       if (json.data && json.data.route) {
         let cSeq = json.data.currentLocation?.sequence;
         if (!cSeq && json.data.currentLocation?.stationCode) {
@@ -139,7 +230,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     fetchLiveStatus();
   }, [trainNumber]);
 
-  // ── Web Audio Beep Alarm Sound Generator ─────────────────────────────────
+  // Audio Beep Alarm Generator
   const startRingingAlarm = () => {
     setIsAlarmRinging(true);
     try {
@@ -153,7 +244,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, ctx.currentTime); // A5 note
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
         gain.gain.setValueAtTime(0.3, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
         osc.connect(gain);
@@ -175,7 +266,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     }
   };
 
-  // Check alarm distance
   useEffect(() => {
     if (!isAlarmActive || !targetAlarmStation || !data?.route) return;
 
@@ -236,7 +326,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     });
   };
 
-  // Section Mapping & Counts
   let sectionCounter = 0;
   const sectionCounts: Record<number, number> = {};
 
@@ -276,7 +365,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     return Math.min(100, Math.max(5, (currentSeq / routeList.length) * 100));
   };
 
-  // Parse Coach Composition
   const rawCoachStr = data?.train?.coachPosition || data?.coachPosition || 'ENG-SLRD-GS-GS-S1-S2-S3-S4-S5-PC-B1-B2-B3-B4-A1-GS-SLRD';
   const coachList = rawCoachStr.split('-').map((c: string) => c.trim()).filter(Boolean);
 
@@ -290,6 +378,14 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     if (uppercase.startsWith('H') || uppercase.includes('1A')) return { bg: 'bg-[#831843] text-pink-300 border-pink-500/50', label: 'AC 1st Class (1A)' };
     if (uppercase.includes('PC')) return { bg: 'bg-[#78350F] text-orange-300 border-orange-500/50', label: 'Pantry Car' };
     return { bg: 'bg-[#1E293B] text-slate-300 border-slate-600', label: 'Guard / Luggage' };
+  };
+
+  const getSpeedCategory = (spd: number | null) => {
+    if (spd === null) return { label: 'Connecting GPS...', color: 'text-amber-400', bg: 'bg-amber-500/20' };
+    if (spd === 0) return { label: 'Stationary / Stopped', color: 'text-gray-300', bg: 'bg-gray-700/50' };
+    if (spd <= 30) return { label: 'Crawling Speed 🟡', color: 'text-yellow-400', bg: 'bg-yellow-500/20' };
+    if (spd <= 80) return { label: 'Cruising Speed 🔵', color: 'text-blue-400', bg: 'bg-blue-500/20' };
+    return { label: 'High Speed Express! 🟢', color: 'text-emerald-400 animate-pulse', bg: 'bg-emerald-500/20' };
   };
 
   return (
@@ -335,7 +431,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           </div>
         </div>
 
-        {/* ── Top Feature Action Pills Bar (Today, Alarm, Coach, Share) ── */}
+        {/* ── Top Feature Action Pills Bar (Today, Speedometer, Alarm, Coach, Share) ── */}
         <div className="bg-[#121927] px-4 py-2 border-b border-[#24334B] flex items-center gap-2 overflow-x-auto scrollbar-hide relative z-20">
           <div className="relative">
             <button
@@ -371,6 +467,15 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
               </div>
             )}
           </div>
+
+          {/* ⚡ 100% REAL LIVE GPS SPEEDOMETER BUTTON */}
+          <button
+            onClick={() => setShowSpeedometerModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-cyan-950 to-blue-950 hover:from-cyan-900 hover:to-blue-900 text-cyan-300 border border-cyan-500/50 text-xs font-black transition-all flex-shrink-0 shadow-[0_0_10px_rgba(6,182,212,0.4)]"
+          >
+            <Gauge className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+            <span>Speedometer ⚡</span>
+          </button>
 
           {/* ⏰ ACTIVE GPS STATION ALARM BUTTON */}
           <button
@@ -428,7 +533,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           <div className="w-20 text-right uppercase text-gray-400 tracking-wider">Departure</div>
         </div>
 
-        {/* ── Main Scrollable Timeline (GUARANTEED VISIBLE TRAIN ON STEEL RAILS) ── */}
+        {/* ── Main Scrollable Timeline ───────────────────────────── */}
         <div className="flex-1 overflow-y-auto bg-[#0B0F17] px-0 py-0 relative z-10">
 
           {loading && (
@@ -498,7 +603,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
                       {/* 100% UNBROKEN CONTINUOUS OVERLAPPING STEEL RAILS TRACK LADDER COLUMN */}
                       <div className="relative w-12 flex-shrink-0 flex items-center justify-center min-h-[56px] z-20">
-                        {/* Continuous Steel Rails */}
                         <div className="absolute -top-6 -bottom-6 w-5 flex justify-center pointer-events-none z-0">
                           <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_10px_rgba(6,182,212,1)]"></div>
                           <div className="absolute right-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_10px_rgba(6,182,212,1)]"></div>
@@ -575,6 +679,101 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
         </div>
 
+        {/* ── ⚡ 100% REAL LIVE GPS SPEEDOMETER MODAL ─────────────────── */}
+        {showSpeedometerModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+            <div className="bg-[#121927] border border-[#2B3E5C] rounded-2xl p-5 max-w-md w-full shadow-2xl text-white relative">
+              <div className="flex items-center justify-between pb-3 border-b border-[#24334B] mb-4">
+                <h3 className="text-base font-black flex items-center gap-2 text-cyan-400">
+                  <Gauge className="w-5 h-5 text-cyan-400 animate-spin" />
+                  <span>Real Hardware GPS Speedometer</span>
+                </h3>
+                <button onClick={() => setShowSpeedometerModal(false)} className="p-1 rounded-full hover:bg-white/10 text-gray-300">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Status Badge */}
+              <div className="mb-4 flex items-center justify-between text-xs font-bold">
+                <span className="text-gray-400">GPS Connection:</span>
+                {gpsStatus === 'active' && (
+                  <span className="text-emerald-400 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/50">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span>Live GPS Satellite Active ✅</span>
+                  </span>
+                )}
+                {gpsStatus === 'connecting' && (
+                  <span className="text-amber-300 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/50">
+                    <RefreshCw className="w-3 h-3 animate-spin text-amber-400" />
+                    <span>Connecting Satellite Fix...</span>
+                  </span>
+                )}
+                {gpsStatus === 'denied' && (
+                  <span className="text-red-400 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-950/80 border border-red-500/50">
+                    <ShieldAlert className="w-3 h-3" />
+                    <span>Location Permission Required</span>
+                  </span>
+                )}
+                {gpsStatus === 'error' && (
+                  <span className="text-red-400 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-950/80 border border-red-500/50">
+                    <span>GPS Sensor Error</span>
+                  </span>
+                )}
+              </div>
+
+              {/* Neon Speed Gauge Dial */}
+              <div className="flex flex-col items-center justify-center my-6 relative">
+                <div className="w-48 h-48 rounded-full border-4 border-[#24334B] bg-gradient-to-tr from-[#0B0F17] via-[#162134] to-[#0D1421] shadow-[0_0_30px_rgba(6,182,212,0.3)] flex flex-col items-center justify-center relative overflow-hidden">
+                  
+                  {/* Gauge Arc Glow */}
+                  <div className="absolute inset-2 rounded-full border-2 border-cyan-500/30 border-t-cyan-400 border-r-cyan-400 pointer-events-none"></div>
+
+                  <Zap className="w-6 h-6 text-cyan-400 mb-1 animate-pulse" />
+                  
+                  <div className="text-5xl font-black tracking-tighter text-white font-mono">
+                    {currentSpeedKmH !== null ? currentSpeedKmH : '--'}
+                  </div>
+                  
+                  <div className="text-xs font-black text-cyan-400 uppercase tracking-widest mt-1">
+                    km / h
+                  </div>
+                </div>
+
+                {/* Speed Category Label */}
+                <div className={`mt-4 px-4 py-1.5 rounded-full text-xs font-black border ${getSpeedCategory(currentSpeedKmH).bg} ${getSpeedCategory(currentSpeedKmH).color}`}>
+                  {getSpeedCategory(currentSpeedKmH).label}
+                </div>
+              </div>
+
+              {/* Stats Bar */}
+              <div className="grid grid-cols-2 gap-3 mb-4 text-center">
+                <div className="bg-[#0B0F17] p-3 rounded-xl border border-[#24334B]">
+                  <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Max Speed Recorded</div>
+                  <div className="text-lg font-black text-emerald-400 font-mono">{maxSpeedKmH} km/h</div>
+                </div>
+
+                <div className="bg-[#0B0F17] p-3 rounded-xl border border-[#24334B]">
+                  <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Data Source</div>
+                  <div className="text-xs font-extrabold text-blue-300 mt-1">Hardware GPS Satellite</div>
+                </div>
+              </div>
+
+              {/* Offline Banner */}
+              <div className="p-2.5 rounded-xl bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 text-[11px] font-bold flex items-center gap-2 mb-4">
+                <Compass className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                <span>Works 100% Offline inside train without internet data!</span>
+              </div>
+
+              <button
+                onClick={() => setShowSpeedometerModal(false)}
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl text-xs transition-colors shadow"
+              >
+                Close Speedometer
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ── ⏰ GPS STATION PROXIMITY ALARM MODAL ───────────────────── */}
         {showAlarmModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
@@ -589,7 +788,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                 </button>
               </div>
 
-              {/* Target Station Select */}
               <div className="mb-4">
                 <label className="text-xs text-gray-300 font-bold uppercase tracking-wider block mb-1">
                   Destination / Target Station:
@@ -607,7 +805,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                 </select>
               </div>
 
-              {/* Distance Warning Threshold */}
               <div className="mb-5">
                 <label className="text-xs text-gray-300 font-bold uppercase tracking-wider block mb-1">
                   Ring Alarm When Distance Is:
@@ -629,7 +826,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                 </div>
               </div>
 
-              {/* Toggle Alarm */}
               <div className="flex gap-2">
                 {isAlarmActive ? (
                   <button
@@ -673,7 +869,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                 </button>
               </div>
 
-              {/* Coach Layout Scrollable Row */}
               <div className="bg-[#0B0F17] p-4 rounded-xl border border-[#23354E] mb-4">
                 <div className="text-[10px] text-gray-400 mb-2 font-bold uppercase tracking-wider flex items-center justify-between">
                   <span>🚂 Engine (Front)</span>
@@ -701,7 +896,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                 </div>
               </div>
 
-              {/* Selected Coach Detailed Information */}
               {selectedCoach && (
                 <div className="bg-[#0F172A] p-3 rounded-xl border border-[#24354E] mb-4 text-xs font-bold text-gray-200 animate-in fade-in">
                   <div className="text-emerald-400 font-extrabold text-sm mb-1">
@@ -713,7 +907,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                 </div>
               )}
 
-              {/* Legend Badges */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[10px] font-bold text-gray-300 mb-4">
                 <div className="flex items-center gap-1.5">
                   <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
