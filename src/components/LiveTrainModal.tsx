@@ -1026,10 +1026,20 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                 </button>
 
                 <div>
-                  <div className="text-xs sm:text-sm font-black text-red-400 group-hover:text-red-300 transition-colors">
+                  <div className={`text-xs sm:text-sm font-black transition-colors ${
+                    data.delayMinutes > 0 ? 'text-amber-400 group-hover:text-amber-300' : 'text-emerald-400 group-hover:text-emerald-300'
+                  }`}>
                     {data.delayMinutes > 0
-                      ? `Departed ${data.currentLocation?.stationName || 'Station'} • ${data.delayMinutes} mins delay`
-                      : `${data.currentLocation?.stationName || 'En Route'}`}
+                      ? `Departed ${
+                          data.currentLocation?.stationName || 
+                          uniqueRoute.find((s: any) => s.stationCode === data.currentLocation?.stationCode)?.stationName || 
+                          'Station'
+                        } • ${data.delayMinutes} mins delay`
+                      : `${
+                          data.currentLocation?.stationName || 
+                          uniqueRoute.find((s: any) => s.stationCode === data.currentLocation?.stationCode)?.stationName || 
+                          'Station'
+                        } • On Time`}
                   </div>
                   <div className="text-[10px] text-gray-400 font-medium">
                     Updated just now • Click for Live Route Details

@@ -322,17 +322,21 @@ export default function ResultsSection({
     <div className="space-y-3 pt-2 md:pt-0">
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mx-1.5 md:mx-0">
         {/* ── Route Header Info ────────────────────────────── */}
-      <div className="bg-white p-4 pb-2 border-b border-gray-100 flex items-center justify-between">
+      <div className="bg-white p-4 border-b border-gray-100 flex items-center justify-between">
         <div>
           {from && to && (
             <h2 className="text-xl md:text-xl font-bold text-gray-900 mb-0 flex items-center gap-2">
               {from} <span className="text-[var(--color-brand-blue)] text-lg leading-none">»</span> {to}
             </h2>
           )}
-          {/* Hide subtitle on mobile, show on desktop */}
           <p className="hidden md:block text-sm text-gray-500 font-medium mt-1">
-            {allRoutes.length} Route{allRoutes.length > 1 ? 's' : ''} Found
+            Discover direct trains and smart connecting routes
           </p>
+        </div>
+        
+        {/* Route count badge visible on both Mobile & Desktop */}
+        <div className="px-3 py-1 bg-blue-50 border border-blue-100 rounded-full text-xs font-black text-blue-600 flex-shrink-0 shadow-sm">
+          {allRoutes.length} Route{allRoutes.length !== 1 ? 's' : ''} Found
         </div>
       </div>
 
