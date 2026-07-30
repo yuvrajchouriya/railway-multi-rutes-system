@@ -41,7 +41,7 @@ export function isValidDate(date: string | null | undefined): boolean {
 export function isValidPnr(pnr: string | null | undefined): boolean {
   if (!pnr) return false;
   const cleaned = pnr.replace(/\D/g, '');
-  return cleaned.length === 10;
+  return cleaned.length === 10 && /^\d{10}$/.test(cleaned);
 }
 
 /** Train class type: known IRCTC class codes */
@@ -56,4 +56,29 @@ export function isSafeString(str: string | null | undefined, maxLen = 100): bool
   if (!str) return false;
   if (str.length > maxLen) return false;
   return !/<|>|script|javascript|on\w+=/i.test(str);
+}
+
+/** SSRF Check: Blocks requests targetting private IP addresses/loopback addresses */
+export function isSafeUrl(targetUrl: string): boolean {
+  try {
+    const url = new URL(targetUrl);
+    const hostname = url.hostname.toLowerCase();
+    
+    // Block localhost, private IPs, loopback addresses
+    if (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '0.0.0.0' ||
+      hostname.startsWith('192.168.') ||
+      hostname.startsWith('10.') ||
+      hostname.startsWith('172.')
+    ) {
+      if (process.env.NODE_ENV !== 'development') {
+        return false;
+      }
+    }
+    return true;
+  } catch (e) {
+    return false;
+  }
 }

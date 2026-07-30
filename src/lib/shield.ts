@@ -25,21 +25,24 @@ export function verifyApiKey(request: Request | { headers: Headers }): boolean {
   const headers = request.headers;
 
   // 1. API Key check (RouteChef-style internal token)
-  const clientKey = headers.get('x-railsathi-key');
+  const clientKey = headers.get('x-railsathi-key') || headers.get('x-internal-api-key');
   if (!clientKey || clientKey !== SERVER_KEY) {
     return false;
   }
 
   // 2. Browser origin check (Sec-Fetch-Site is set by browsers automatically)
-  // External tools (Postman, curl, Python) do NOT send this header
-  // or send it with value 'none' / 'cross-site'
   const secFetchSite = headers.get('sec-fetch-site');
+  const origin = headers.get('origin');
+  const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || 'https://railsathi.vercel.app';
 
-  // In production: only allow same-origin browser requests
+  // In production: only allow same-origin browser requests and match allowed origin strictly
   if (process.env.NODE_ENV === 'production') {
-    // Allow 'same-origin' (regular page navigation) and 'none' is blocked
-    // Note: 'same-origin' is set by browsers for same-domain fetches
     if (secFetchSite && secFetchSite !== 'same-origin' && secFetchSite !== 'same-site') {
+      return false;
+    }
+    
+    // Explicit Origin header verification (CORS enforcement at code level)
+    if (origin && origin !== allowedOrigin) {
       return false;
     }
   }
