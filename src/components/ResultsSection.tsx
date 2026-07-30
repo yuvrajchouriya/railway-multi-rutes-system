@@ -299,10 +299,10 @@ export default function ResultsSection({
     return h * 60 + m;
   };
 
-  // Chronological Sorting by Departure Time (00:00 to 23:59)
+  // 🚀 User Directive: Sort by Fastest Route (Total Duration) First!
   filtered.sort((a, b) => {
     if (activeFilter !== 'high-confirm-chance') {
-      return getDepMinutes(a) - getDepMinutes(b);
+      return a.totalDurationMinutes - b.totalDurationMinutes;
     }
 
     // Intelligence Sort for High Confirm Chance Tab:
