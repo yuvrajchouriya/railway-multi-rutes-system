@@ -50,7 +50,7 @@ export default function TrainSearchCard({ onSelectTrain }: TrainSearchCardProps)
 
   // Filter local & API suggestions with 300ms debounce to prevent screen lagging
   useEffect(() => {
-    if (!query.trim()) {
+    if (!query.trim() || query.trim().length < 2) {
       setSuggestions([]);
       setShowDropdown(false);
       return;
@@ -139,7 +139,7 @@ export default function TrainSearchCard({ onSelectTrain }: TrainSearchCardProps)
   };
 
   return (
-    <div className="bg-gradient-to-br from-[#121A29] via-[#172338] to-[#0F1623] border border-[#2B3E5C] rounded-2xl p-4 sm:p-5 shadow-2xl relative overflow-hidden mt-4">
+    <div className="bg-gradient-to-br from-[#121A29] via-[#172338] to-[#0F1623] border border-[#2B3E5C] rounded-2xl p-4 sm:p-5 shadow-2xl relative overflow-visible mt-4">
       
       {/* Glow effect */}
       <div className="absolute -top-12 -left-12 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none"></div>
@@ -164,17 +164,17 @@ export default function TrainSearchCard({ onSelectTrain }: TrainSearchCardProps)
         </div>
       </div>
 
-      {/* Input Box & Search Button */}
-      <div className="relative mb-3">
-        <div className="flex flex-col sm:flex-row gap-2">
+      {/* Input Box & Search Button with relative wrapper */}
+      <div className="relative mb-3 z-30" ref={dropdownRef}>
+        <div className="flex flex-col sm:flex-row gap-2 relative">
           <div className="relative flex-1">
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              onFocus={() => query.trim() && setShowDropdown(true)}
+              onFocus={() => query.trim().length >= 2 && setShowDropdown(true)}
               onKeyDown={(e) => e.key === 'Enter' && handleDirectSearch()}
-              placeholder="Enter Train Number or Name (e.g. 12642 or Patalkot Express)"
+              placeholder="Enter Train Number or Name (e.g. 12642 or Patalkot)"
               className="w-full bg-[#0B0F17] border border-[#2B3E5C] focus:border-cyan-400 rounded-xl px-4 py-3 text-sm font-extrabold text-white placeholder-gray-500 focus:outline-none transition-all shadow-inner tracking-wide"
             />
             {query && (
