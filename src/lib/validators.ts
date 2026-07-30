@@ -5,7 +5,7 @@
 /** Station code: 1–8 uppercase alphanumeric chars (e.g. NGP, NDLS, DELHI_ALL) */
 export function isValidStationCode(code: string | null | undefined): boolean {
   if (!code) return false;
-  return /^[A-Z0-9_]{1,12}$/.test(code.toUpperCase().trim());
+  return /^[A-Z0-9_\-\/\s]{1,25}$/.test(code.toUpperCase().trim());
 }
 
 /** Train number: 4 or 5 digits only (e.g. 12642, 20423) */

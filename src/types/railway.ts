@@ -88,7 +88,8 @@ export type RouteTag =
   | 'fastest'
   | 'best-availability'
   | 'high-confirm-chance' // 🆕 Our unique selling point
-  | 'hidden-quota';
+  | 'hidden-quota'
+  | 'nearby-hub';
 
 // ─────────────────────────────────────────────
 // A complete route (direct OR connecting)
@@ -103,4 +104,5 @@ export interface Route {
   cheapestFare: number | null;
   bestConfirmProbability: number;       // 0-100 — used for smart sorting
   tags: RouteTag[];
+  nearbyHubWarning?: string;
 }

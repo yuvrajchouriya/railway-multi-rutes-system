@@ -2,8 +2,8 @@
 // ROUTE FINDER — Direct + Connecting (Multi-Route) Engine
 // ============================================================
 
-import { Route, TrainLeg } from '@/types/railway';
-import { searchLiveTrainsConfirmTkt } from './railway-client';
+import { Route, TrainLeg, RouteTag } from '@/types/railway';
+import { searchLiveTrainsConfirmTkt, searchTrainsBetweenStations } from './railway-client';
 import { calculateDistanceKm } from './geo';
 
 // Comprehensive pool of major railway junctions across India
@@ -223,19 +223,27 @@ export async function findConnectingRoutes(
     .sort((a, b) => a.detourDist - b.detourDist);
 
   const relevantJunctions = junctionScores.length > 0 
-    ? junctionScores.slice(0, 12).map(j => j.junction)
+    ? junctionScores.slice(0, 15).map(j => j.junction)
     : DEFAULT_FALLBACK_JUNCTIONS.filter(j => j !== primaryFrom && j !== primaryTo);
 
-  // Parallel Fetch Leg 1 across candidate junctions
-  const leg1Promises = relevantJunctions.map(j => searchLiveTrainsConfirmTkt(primaryFrom, j, date));
-  const leg1Results = await Promise.all(leg1Promises);
+  // 1. Parallel Fetch Leg 1 offline to prevent rate limiting
+  const leg1Results = await Promise.all(
+    relevantJunctions.map(j => searchTrainsBetweenStations(primaryFrom, j, date))
+  );
 
-  // Parallel Fetch Leg 2 across all active junctions simultaneously
-  const leg2Promises = relevantJunctions.map((j, idx) => {
-    if (!leg1Results[idx] || leg1Results[idx].length === 0) return Promise.resolve([]);
-    return searchLiveTrainsConfirmTkt(j, primaryTo, date);
-  });
-  const leg2Results = await Promise.all(leg2Promises);
+  // 2. Parallel Fetch Leg 2 offline for both day 1 and day 2 to support overnight layovers
+  const dateObj = new Date(date);
+  const nextDateObj = new Date(dateObj.getTime() + 24 * 60 * 60 * 1000);
+  const nextDate = nextDateObj.toISOString().split('T')[0];
+
+  const leg2Results = await Promise.all(
+    relevantJunctions.map(async (j, idx) => {
+      if (!leg1Results[idx] || leg1Results[idx].length === 0) return [];
+      const day1Trains = await searchTrainsBetweenStations(j, primaryTo, date);
+      const day2Trains = await searchTrainsBetweenStations(j, primaryTo, nextDate);
+      return [...day1Trains, ...day2Trains];
+    })
+  );
 
   const seenRouteIds = new Set<string>();
 
@@ -260,6 +268,11 @@ export async function findConnectingRoutes(
         const l2Dep = parseT(leg2.departureTime);
         let layover = l2Dep - l1Arr;
         let leg2DepartureDayOffset = leg1ArrDayOffset;
+
+        // If departure is next day
+        if (leg2.departureDayOffset && leg2.departureDayOffset > 0) {
+          layover += 1440 * leg2.departureDayOffset;
+        }
 
         if (layover < MIN_LAYOVER_MINUTES) {
           layover += 1440;
@@ -306,8 +319,81 @@ export async function findConnectingRoutes(
     }
   }
 
+  // If no connecting routes found, fall back to live fetching as a safety mechanism
+  if (connectingRoutes.length === 0) {
+    const liveLeg1 = await Promise.all(
+      relevantJunctions.slice(0, 3).map(j => searchLiveTrainsConfirmTkt(primaryFrom, j, date))
+    );
+    const liveLeg2 = await Promise.all(
+      relevantJunctions.slice(0, 3).map(j => searchLiveTrainsConfirmTkt(j, primaryTo, date))
+    );
+
+    for (let idx = 0; idx < Math.min(3, relevantJunctions.length); idx++) {
+      const junction = relevantJunctions[idx];
+      const leg1Trains = liveLeg1[idx];
+      const leg2Trains = liveLeg2[idx];
+      if (!leg1Trains || leg1Trains.length === 0 || !leg2Trains || leg2Trains.length === 0) continue;
+
+      for (const leg1 of leg1Trains) {
+        const l1Dep = parseT(leg1.departureTime);
+        const l1Arr = parseT(leg1.arrivalTime);
+        const leg1ArrDayOffset = leg1.arrivalDayOffset || (l1Arr < l1Dep ? 1 : 0);
+
+        for (const leg2 of leg2Trains) {
+          if (leg1.trainNumber === leg2.trainNumber) continue;
+          const l2Dep = parseT(leg2.departureTime);
+          let layover = l2Dep - l1Arr;
+          let leg2DepartureDayOffset = leg1ArrDayOffset;
+
+          if (layover < MIN_LAYOVER_MINUTES) {
+            layover += 1440;
+            leg2DepartureDayOffset += 1;
+          }
+
+          if (layover >= MIN_LAYOVER_MINUTES && layover <= MAX_LAYOVER_MINUTES) {
+            const routeId = `conn-live-${junction}-${leg1.trainNumber}-${leg2.trainNumber}`;
+            if (seenRouteIds.has(routeId)) continue;
+
+            const totalDuration = leg1.durationMinutes + layover + leg2.durationMinutes;
+            seenRouteIds.add(routeId);
+
+            const route: Route = {
+              id: routeId,
+              type: 'connecting',
+              legs: [leg1, { ...leg2, departureDayOffset: leg2DepartureDayOffset, arrivalDayOffset: leg2DepartureDayOffset + (parseT(leg2.arrivalTime) < l2Dep ? 1 : 0) }],
+              totalDurationMinutes: totalDuration,
+              transferStations: [{ code: junction, name: leg2.fromStation.name, state: null, isJunction: true }],
+              bestAvailability: null,
+              cheapestFare: null,
+              bestConfirmProbability: 0,
+              tags: ['connecting'],
+            };
+            connectingRoutes.push(route);
+            if (onRouteFound) onRouteFound(route);
+          }
+        }
+      }
+    }
+  }
+
   connectingRoutes.sort((a, b) => a.totalDurationMinutes - b.totalDurationMinutes);
   return connectingRoutes;
+}
+
+export function findNearestHub(stationCode: string): string | null {
+  let minDistance = Infinity;
+  let nearestJunction = null;
+
+  for (const j of JUNCTIONS) {
+    if (j === stationCode) continue;
+    const dist = calculateDistanceKm(stationCode, j);
+    if (dist < minDistance && dist > 0) {
+      minDistance = dist;
+      nearestJunction = j;
+    }
+  }
+
+  return minDistance <= 250 ? nearestJunction : null;
 }
 
 export async function findRoutes(
@@ -321,5 +407,30 @@ export async function findRoutes(
     fastestDirectMins = Math.min(...directRoutes.map(r => r.totalDurationMinutes));
   }
   const connectingRoutes = await findConnectingRoutes(from, to, date, fastestDirectMins);
+
+  // Auto Nearby Hub Fallback Logic:
+  // If no routes are found between from and to, query nearest major hub of the source
+  if (directRoutes.length === 0 && connectingRoutes.length === 0) {
+    const nearestHub = findNearestHub(from);
+    if (nearestHub && nearestHub !== from && nearestHub !== to) {
+      const hubRoutes = await findRoutes(nearestHub, to, date);
+      const hubDist = calculateDistanceKm(from, nearestHub);
+      
+      const hubDirect = hubRoutes.directRoutes.map(r => ({
+        ...r,
+        tags: [...(r.tags || []), 'nearby-hub'] as RouteTag[],
+        nearbyHubWarning: `No trains found from ${from}. Showing routes from nearest major station ${nearestHub} (~${hubDist} km away).`
+      }));
+      
+      const hubConnecting = hubRoutes.connectingRoutes.map(r => ({
+        ...r,
+        tags: [...(r.tags || []), 'nearby-hub'] as RouteTag[],
+        nearbyHubWarning: `No trains found from ${from}. Showing routes from nearest major station ${nearestHub} (~${hubDist} km away).`
+      }));
+      
+      return { directRoutes: hubDirect, connectingRoutes: hubConnecting };
+    }
+  }
+
   return { directRoutes, connectingRoutes };
 }

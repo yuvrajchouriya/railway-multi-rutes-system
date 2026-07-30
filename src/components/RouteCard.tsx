@@ -28,6 +28,7 @@ const TAG_CONFIG = {
   'cheapest':  { label: 'CHEAPEST',   bg: 'bg-white text-teal-600 border-teal-600' },
   'direct':    { label: 'DIRECT',     bg: 'bg-white text-gray-500 border-gray-400' },
   'connecting':{ label: 'CONNECTING', bg: 'bg-white text-gray-500 border-gray-400' },
+  'nearby-hub': { label: 'NEARBY HUB', bg: 'bg-amber-600 text-white border-amber-500' },
 } as const;
 
 // ── Format HH:MM duration ─────────────────────────────────
@@ -622,6 +623,12 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
 
   return (
     <div className="route-card overflow-hidden">
+      {route.nearbyHubWarning && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-5 py-2.5 text-xs text-amber-300 font-bold flex items-center gap-2">
+          <Navigation className="w-4 h-4 flex-shrink-0 animate-pulse text-amber-400" />
+          <span>{route.nearbyHubWarning}</span>
+        </div>
+      )}
       {/* ── Collapsed Header ─────────────────────────────── */}
       <div className="p-5 relative">
         
