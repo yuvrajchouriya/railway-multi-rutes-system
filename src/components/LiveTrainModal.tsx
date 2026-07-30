@@ -761,16 +761,16 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
                         {/* Station Dot / Live Train Badge */}
                         {isCurrentLoc ? (
-                          <div className="relative flex items-center justify-center z-30">
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-400 via-blue-500 to-purple-600 border-2 border-white shadow-[0_0_18px_rgba(6,182,212,1)] flex items-center justify-center animate-bounce">
+                          <div className="relative flex items-center justify-center z-40">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-400 via-blue-500 to-purple-600 border-2 border-white shadow-[0_0_18px_rgba(6,182,212,1)] flex items-center justify-center animate-bounce z-40">
                               <Train className="w-5 h-5 text-white" />
                             </div>
-                            <div className="absolute inset-0 rounded-full bg-cyan-400/60 animate-ping z-20"></div>
+                            <div className="absolute inset-0 rounded-full bg-cyan-400/60 animate-ping z-30"></div>
                           </div>
                         ) : isHalt ? (
-                          <div className="w-4 h-4 rounded-full border-2 border-white bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,1)] z-30"></div>
+                          <div className="w-4 h-4 rounded-full border-2 border-white bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,1)] z-40 relative"></div>
                         ) : (
-                          <div className="w-3 h-3 rounded-full border border-white bg-cyan-300 shadow-[0_0_8px_rgba(34,211,238,0.9)] z-30"></div>
+                          <div className="w-3 h-3 rounded-full border border-white bg-cyan-300 shadow-[0_0_8px_rgba(34,211,238,0.9)] z-40 relative"></div>
                         )}
                       </div>
 
