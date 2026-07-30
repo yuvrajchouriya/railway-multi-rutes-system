@@ -394,6 +394,106 @@ export function findNearbyHubs(stationCode: string, maxRadiusKm = 250): { code: 
   return hubs.sort((a, b) => a.distance - b.distance).slice(0, 5);
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// BUILD HUB CONNECTING ROUTES: from → hub → to (proper 2-leg journey)
+// When no trains exist directly from `from`, we search:
+//   Leg 1: from → hub (e.g. CWA → ET)
+//   Leg 2: hub  → to  (e.g. ET → CNB)
+// and stitch them into a complete connecting Route object.
+// ──────────────────────────────────────────────────────────────────────────────
+export async function buildHubConnectingRoutes(
+  from: string,
+  to: string,
+  date: string,
+  onRouteFound?: (route: Route) => void
+): Promise<Route[]> {
+  const nearbyHubs = findNearbyHubs(from);
+  const routes: Route[] = [];
+  const seenIds = new Set<string>();
+
+  const dateObj = new Date(date);
+  const nextDateObj = new Date(dateObj.getTime() + 24 * 60 * 60 * 1000);
+  const nextDate = nextDateObj.toISOString().split('T')[0];
+
+  for (const hub of nearbyHubs) {
+    if (hub.code === from || hub.code === to) continue;
+
+    // Leg 1: from → hub
+    const leg1Trains = await searchTrainsBetweenStations(from, hub.code, date);
+    if (!leg1Trains || leg1Trains.length === 0) continue;
+
+    // Leg 2: hub → to (day 1 + day 2 for overnight layovers)
+    const leg2Day1 = await searchTrainsBetweenStations(hub.code, to, date);
+    const leg2Day2 = await searchTrainsBetweenStations(hub.code, to, nextDate);
+    const leg2Trains = [...leg2Day1, ...leg2Day2];
+    if (!leg2Trains || leg2Trains.length === 0) continue;
+
+    let foundForHub = 0;
+
+    for (const leg1 of leg1Trains) {
+      if (foundForHub >= 5) break;
+
+      const l1Dep = parseT(leg1.departureTime);
+      const l1Arr = parseT(leg1.arrivalTime);
+      const leg1ArrDayOffset = leg1.arrivalDayOffset || (l1Arr < l1Dep ? 1 : 0);
+
+      for (const leg2 of leg2Trains) {
+        if (leg1.trainNumber === leg2.trainNumber) continue;
+
+        const l2Dep = parseT(leg2.departureTime);
+        let layover = l2Dep - l1Arr;
+        let leg2DepartureDayOffset = leg1ArrDayOffset;
+
+        if (leg2.departureDayOffset && leg2.departureDayOffset > 0) {
+          layover += 1440 * leg2.departureDayOffset;
+        }
+
+        // If layover is negative, leg2 departs next day
+        if (layover < MIN_LAYOVER_MINUTES) {
+          layover += 1440;
+          leg2DepartureDayOffset += 1;
+        }
+
+        if (layover >= MIN_LAYOVER_MINUTES && layover <= MAX_LAYOVER_MINUTES) {
+          const routeId = `hub-conn-${hub.code}-${leg1.trainNumber}-${leg2.trainNumber}`;
+          if (seenIds.has(routeId)) continue;
+
+          const totalDuration = leg1.durationMinutes + layover + leg2.durationMinutes;
+
+          const l2Arr = parseT(leg2.arrivalTime);
+          const leg2DurationDays = l2Arr < l2Dep ? 1 : 0;
+
+          const updatedLeg2: TrainLeg = {
+            ...leg2,
+            departureDayOffset: leg2DepartureDayOffset,
+            arrivalDayOffset: leg2DepartureDayOffset + leg2DurationDays,
+          };
+
+          const route: Route = {
+            id: routeId,
+            type: 'connecting',
+            legs: [leg1, updatedLeg2],
+            totalDurationMinutes: totalDuration,
+            transferStations: [{ code: hub.code, name: leg2.fromStation.name, state: null, isJunction: true }],
+            bestAvailability: null,
+            cheapestFare: null,
+            bestConfirmProbability: 0,
+            tags: ['connecting'],
+          };
+
+          seenIds.add(routeId);
+          routes.push(route);
+          if (onRouteFound) onRouteFound(route);
+          foundForHub++;
+        }
+      }
+    }
+  }
+
+  routes.sort((a, b) => a.totalDurationMinutes - b.totalDurationMinutes);
+  return routes;
+}
+
 export async function findRoutes(
   from: string,
   to: string,
@@ -406,55 +506,11 @@ export async function findRoutes(
   }
   const connectingRoutes = await findConnectingRoutes(from, to, date, fastestDirectMins);
 
-  // Auto Multi-Hub Fallback Logic:
-  // If no routes are found between from and to, query all nearby major hubs of the source station
+  // Auto Multi-Hub Fallback: Build proper 2-leg routes (from→hub→to)
   if (directRoutes.length === 0 && connectingRoutes.length === 0) {
-    const nearbyHubs = findNearbyHubs(from);
-    
-    let allHubDirect: Route[] = [];
-    let allHubConnecting: Route[] = [];
-    
-    // Call searches sequentially or in parallel for the hubs
-    const hubSearchPromises = nearbyHubs.map(async (hub) => {
-      if (hub.code === from || hub.code === to) return null;
-      try {
-        // Query direct and connecting routes from the hub
-        const direct = await findDirectRoutes(hub.code, to, date);
-        const connecting = await findConnectingRoutes(hub.code, to, date, null);
-        return { hub, direct, connecting };
-      } catch (e) {
-        return null;
-      }
-    });
-    
-    const searchResults = await Promise.all(hubSearchPromises);
-    
-    searchResults.forEach((res) => {
-      if (!res) return;
-      const { hub, direct, connecting } = res;
-      
-      const hubDirect = direct.map(r => ({
-        ...r,
-        tags: [...(r.tags || []), 'nearby-hub'] as RouteTag[],
-        nearbyHubWarning: `No trains found from ${from}. Showing routes from nearest major station ${hub.code} (~${hub.distance} km away).`
-      }));
-      
-      const hubConnecting = connecting.map(r => ({
-        ...r,
-        tags: [...(r.tags || []), 'nearby-hub'] as RouteTag[],
-        nearbyHubWarning: `No trains found from ${from}. Showing routes from nearest major station ${hub.code} (~${hub.distance} km away).`
-      }));
-      
-      allHubDirect = allHubDirect.concat(hubDirect);
-      allHubConnecting = allHubConnecting.concat(hubConnecting);
-    });
-    
-    // Sort all routes by total travel duration
-    allHubDirect.sort((a, b) => a.totalDurationMinutes - b.totalDurationMinutes);
-    allHubConnecting.sort((a, b) => a.totalDurationMinutes - b.totalDurationMinutes);
-    
-    if (allHubDirect.length > 0 || allHubConnecting.length > 0) {
-      return { directRoutes: allHubDirect, connectingRoutes: allHubConnecting };
+    const hubRoutes = await buildHubConnectingRoutes(from, to, date);
+    if (hubRoutes.length > 0) {
+      return { directRoutes: [], connectingRoutes: hubRoutes };
     }
   }
 
