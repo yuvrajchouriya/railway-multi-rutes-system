@@ -174,8 +174,8 @@ export default function TrainSearchCard({ onSelectTrain }: TrainSearchCardProps)
               onChange={(e) => setQuery(e.target.value)}
               onFocus={() => query.trim().length >= 2 && setShowDropdown(true)}
               onKeyDown={(e) => e.key === 'Enter' && handleDirectSearch()}
-              placeholder="Enter Train Number or Name (e.g. 12642 or Patalkot)"
-              className="w-full bg-[#0B0F17] border border-[#2B3E5C] focus:border-cyan-400 rounded-xl px-4 py-3 text-sm font-extrabold text-white placeholder-gray-500 focus:outline-none transition-all shadow-inner tracking-wide"
+              placeholder="Enter Train Number or Name"
+              className="w-full bg-[#0B0F17] border border-[#2B3E5C] focus:border-cyan-400 rounded-xl px-4 py-3.5 text-sm sm:text-base font-extrabold text-white placeholder-gray-500 focus:outline-none transition-all shadow-inner tracking-wide leading-relaxed"
             />
             {query && (
               <button
@@ -190,7 +190,7 @@ export default function TrainSearchCard({ onSelectTrain }: TrainSearchCardProps)
           <button
             onClick={handleDirectSearch}
             disabled={!query.trim()}
-            className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50 text-white font-black text-xs sm:text-sm rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 flex-shrink-0"
+            className="px-6 py-3.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50 text-white font-black text-xs sm:text-sm rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 flex-shrink-0"
           >
             {loading ? (
               <RefreshCw className="w-4 h-4 animate-spin text-white" />
@@ -205,14 +205,14 @@ export default function TrainSearchCard({ onSelectTrain }: TrainSearchCardProps)
         {showDropdown && suggestions.length > 0 && (
           <div 
             ref={dropdownRef}
-            className="absolute top-full left-0 right-0 mt-1.5 bg-[#141E2E] border border-[#2B3E5C] rounded-2xl shadow-2xl overflow-y-auto z-40 max-h-64 divide-y divide-[#202E44] [will-change:transform] overscroll-contain touch-pan-y"
+            className="absolute top-full left-0 right-0 mt-2 bg-[#141E2E] border border-[#2B3E5C] rounded-2xl shadow-2xl overflow-y-auto z-50 max-h-60 divide-y divide-[#202E44] pointer-events-auto [will-change:transform] touch-pan-y"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
             {suggestions.map((st: any) => (
-              <button
+              <div
                 key={st.number}
                 onClick={() => handleSelect(st.number, st.name, st.from, st.to)}
-                className="w-full text-left p-3.5 hover:bg-[#1C293F] active:bg-[#20314C] transition-all flex items-center justify-between group cursor-pointer"
+                className="w-full text-left p-3.5 hover:bg-[#1C293F] active:bg-[#20314C] transition-all flex items-center justify-between group cursor-pointer pointer-events-auto"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-cyan-950 text-cyan-400 border border-cyan-500/40 flex items-center justify-center font-black text-xs flex-shrink-0">
@@ -232,7 +232,7 @@ export default function TrainSearchCard({ onSelectTrain }: TrainSearchCardProps)
                   <span>Track Live</span>
                   <ChevronRight className="w-4 h-4" />
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         )}

@@ -761,7 +761,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
                         {/* Station Dot / Live Train Badge */}
                         {isCurrentLoc ? (
-                          <div className="relative flex items-center justify-center z-40 bg-[#0B0F17] w-10 h-10 rounded-full">
+                          <div className="relative flex items-center justify-center z-40">
                             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-400 via-blue-500 to-purple-600 border-2 border-white shadow-[0_0_18px_rgba(6,182,212,1)] flex items-center justify-center animate-bounce z-40">
                               <Train className="w-5 h-5 text-white" />
                             </div>
