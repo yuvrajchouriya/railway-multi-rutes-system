@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { X, Volume2, Sparkles, Navigation } from 'lucide-react';
+import { X, Bell, Navigation } from 'lucide-react';
 import { checkLandmarkProximity } from '@/utils/landmarkTracker';
 
 export default function ProximityNotificationToast({ activeRoute, currentSeq }: { activeRoute?: any[]; currentSeq?: number }) {
@@ -12,34 +12,84 @@ export default function ProximityNotificationToast({ activeRoute, currentSeq }: 
   useEffect(() => {
     if (!activeRoute || !currentSeq) return;
 
-    const match = checkLandmarkProximity(activeRoute, currentSeq);
+    // ── 1. Check Landmark Proximity (Scenic mountains, bridges) ──────────────
+    const landmarkMatch = checkLandmarkProximity(activeRoute, currentSeq);
 
-    if (match && match.landmark.id !== lastAlertIdRef.current) {
-      setActiveAlert(match);
-      lastAlertIdRef.current = match.landmark.id;
+    if (landmarkMatch && landmarkMatch.landmark.id !== lastAlertIdRef.current) {
+      setActiveAlert({
+        type: 'landmark',
+        id: landmarkMatch.landmark.id,
+        title: landmarkMatch.landmark.name,
+        badge: `${landmarkMatch.remainingKm} km ahead`,
+        subtitle: `Near ${landmarkMatch.stationName} • ${landmarkMatch.landmark.description}`,
+        icon: landmarkMatch.landmark.icon
+      });
+      lastAlertIdRef.current = landmarkMatch.landmark.id;
+      playAlertChime();
+      return;
+    }
 
-      // Play gentle chime sound
-      try {
-        if (!audioRef.current) {
-          audioRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    // ── 2. Check Station Approach Proximity (1 km to 10 km) ──────────────────
+    // Find current station and its distance
+    const currStn = activeRoute.find(s => s.sequence === currentSeq) || activeRoute[0];
+    const currDist = currStn?.distanceKm || currStn?.distance || 0;
+
+    // Find next upcoming halt
+    const nextHalt = activeRoute.find(s => s.sequence > currentSeq && s.isHalt);
+    if (nextHalt) {
+      const nextHaltDist = nextHalt.distanceKm || nextHalt.distance || 0;
+      const remainingKm = nextHaltDist - currDist;
+
+      // If train is between 1 km and 10 km away from next station
+      if (remainingKm > 1.0 && remainingKm <= 10.0) {
+        const roundedKm = Math.round(remainingKm * 10) / 10;
+        const alertId = `stn-${nextHalt.stationCode}-${Math.floor(roundedKm)}`; // trigger alert once per integer km
+
+        if (alertId !== lastAlertIdRef.current) {
+          const formatTime = (t?: string) => {
+            if (!t) return '';
+            const dateObj = new Date(t);
+            return isNaN(dateObj.getTime()) ? t : dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          };
+
+          const arrTime = formatTime(nextHalt.scheduledArrival || nextHalt.scheduleArrival);
+
+          setActiveAlert({
+            type: 'station',
+            id: alertId,
+            title: `Approaching ${nextHalt.stationName}`,
+            badge: `${roundedKm} km away`,
+            subtitle: arrTime ? `Scheduled Arrival: ${arrTime}` : 'Arriving soon',
+            icon: '🚉'
+          });
+          lastAlertIdRef.current = alertId;
+          playAlertChime();
         }
-        const ctx = audioRef.current;
-        if (ctx) {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5 note
-          osc.frequency.exponentialRampToValueAtTime(659.25, ctx.currentTime + 0.3); // E5 note
-          gain.gain.setValueAtTime(0.2, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start();
-          osc.stop(ctx.currentTime + 0.6);
-        }
-      } catch (e) {}
+      }
     }
   }, [activeRoute, currentSeq]);
+
+  const playAlertChime = () => {
+    try {
+      if (!audioRef.current) {
+        audioRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = audioRef.current;
+      if (ctx) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+        osc.frequency.exponentialRampToValueAtTime(659.25, ctx.currentTime + 0.3); // E5
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.6);
+      }
+    } catch (e) {}
+  };
 
   if (!activeAlert) return null;
 
@@ -48,18 +98,18 @@ export default function ProximityNotificationToast({ activeRoute, currentSeq }: 
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-cyan-950/80 border border-cyan-500/50 flex items-center justify-center text-xl flex-shrink-0 shadow-lg animate-bounce">
-            {activeAlert.landmark.icon}
+            {activeAlert.icon}
           </div>
 
           <div>
             <div className="text-xs sm:text-sm font-black text-cyan-300 flex items-center gap-1.5">
-              <span>{activeAlert.landmark.name}</span>
+              <span>{activeAlert.title}</span>
               <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-200 border border-cyan-500/40">
-                {activeAlert.remainingKm} km ahead
+                {activeAlert.badge}
               </span>
             </div>
             <div className="text-[11px] text-gray-300 font-medium mt-0.5">
-              Near {activeAlert.stationName} • {activeAlert.landmark.description}
+              {activeAlert.subtitle}
             </div>
           </div>
         </div>

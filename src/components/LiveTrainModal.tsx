@@ -725,6 +725,13 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                             </span>
                           )}
                         </div>
+
+                        {isCurrentLoc && (
+                          <div className="mt-2 inline-flex flex-col bg-[#1B8A5A] text-white rounded-lg px-3 py-1 text-xs font-black shadow-md border border-emerald-500/20 max-w-[220px]">
+                            <div>Arrived {stn.stationName}</div>
+                            <div className="text-[9px] text-emerald-100/90 font-medium mt-0.5">(Updated few seconds ago)</div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Right: Scheduled & Actual Departure */}
@@ -1027,40 +1034,38 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                 </button>
 
                 <div>
-                  <div className={`text-xs sm:text-sm font-black transition-colors ${
-                    data.delayMinutes > 0 ? 'text-amber-400 group-hover:text-amber-300' : 'text-emerald-400 group-hover:text-emerald-300'
-                  }`}>
+                  <div className="text-xs sm:text-sm font-black text-[#FF6B6B]">
                     {data.delayMinutes > 0
                       ? `Departed ${
                           data.currentLocation?.stationName || 
                           uniqueRoute.find((s: any) => s.stationCode === data.currentLocation?.stationCode)?.stationName || 
                           'Station'
                         } • ${data.delayMinutes} mins delay`
-                      : `${
+                      : `Arrived ${
                           data.currentLocation?.stationName || 
                           uniqueRoute.find((s: any) => s.stationCode === data.currentLocation?.stationCode)?.stationName || 
                           'Station'
-                        } • On Time`}
+                        }`}
                   </div>
-                  <div className="text-[10px] text-gray-400 font-medium">
-                    Updated just now • Click for Live Route Details
+                  <div className="text-[10px] text-gray-400 font-medium mt-0.5">
+                    Updated few seconds ago
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     fetchLiveStatus();
                   }}
-                  className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md transition-all active:scale-95"
+                  className="w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg transition-all active:scale-95 flex-shrink-0"
+                  title="Refresh Live Status"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Refresh</span>
+                  <RefreshCw className="w-5 h-5 animate-spin-hover" />
                 </button>
 
-                <div className="p-1 rounded-full bg-[#24344D] text-gray-300 group-hover:text-white">
+                <div className="p-1 rounded-full bg-[#24344D] text-gray-300 group-hover:text-white ml-2">
                   {showBottomSheet ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
                 </div>
               </div>
