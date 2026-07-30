@@ -51,10 +51,12 @@ export default function TrainSearchCard({ onSelectTrain }: TrainSearchCardProps)
     setSuggestions(localMatches);
     setShowDropdown(true);
 
-    // Fetch from RailRadar API if query is 5 digits
+    // Fetch from our server-side proxy (hides external API from browser DevTools)
     if (/^\d{5}$/.test(query.trim())) {
       setLoading(true);
-      fetch(`https://railradar.in/api/v1/trains/${query.trim()}`)
+      fetch(`/api/train-info?number=${query.trim()}`, {
+        headers: { 'x-internal-api-key': process.env.NEXT_PUBLIC_INTERNAL_API_KEY || '' }
+      })
         .then(res => res.json())
         .then(json => {
           if (json?.success && json?.data?.train) {
