@@ -416,6 +416,9 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
   const visibleRoute = processedRoute.filter((stn: any) => {
     if (stn.isHalt) return true;
+    const isCurrentLoc = (stn.sequence === currentSeq) || 
+                         (data?.currentLocation?.stationCode && stn.stationCode === data.currentLocation.stationCode);
+    if (isCurrentLoc) return true;
     return expandedSections.has(stn.sectionId);
   });
 
@@ -689,8 +692,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                   const isDelayedArr = stn.delayArrivalMinutes > 0;
                   const isDelayedDep = stn.delayDepartureMinutes > 0;
 
-                  const isTargetScrollStn = (stn.sequence === currentSeq) || 
-                                            (stn.isHalt && stn.sectionId === activeSectionId && !visibleRoute.some((v: any) => v.sequence === currentSeq));
+                  const isTargetScrollStn = isCurrentLoc;
 
                   return (
                     <div
