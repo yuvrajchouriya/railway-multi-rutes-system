@@ -63,8 +63,8 @@ export async function GET(request: Request) {
           const d = json.data;
           const formattedRoute = (d.route || []).map((stn: any, idx: number) => ({
             sequence: stn.sequence || idx + 1,
-            stationCode: stn.stationCode || stn.station?.code || 'STN',
-            stationName: stn.stationName || stn.station?.name || stn.stationName || 'Station',
+            stationCode: stn.stationCode || stn.station?.code || stn.station_code || 'STN',
+            stationName: stn.stationName || stn.station_name || stn.station?.name || stn.station?.stationName || stn.station?.code || 'Station',
             isHalt: stn.isHalt !== false,
             scheduledArrival: stn.scheduledArrival,
             scheduledDeparture: stn.scheduledDeparture,
