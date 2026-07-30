@@ -35,7 +35,20 @@ export default function TrainSearchCard({ onSelectTrain }: TrainSearchCardProps)
     } catch (e) {}
   }, []);
 
-  // Filter local & API suggestions as user types
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Filter local & API suggestions with 300ms debounce to prevent screen lagging
   useEffect(() => {
     if (!query.trim()) {
       setSuggestions([]);
@@ -43,40 +56,58 @@ export default function TrainSearchCard({ onSelectTrain }: TrainSearchCardProps)
       return;
     }
 
-    const qLower = query.toLowerCase();
-    const localMatches = POPULAR_TRAINS.filter(
-      t => t.number.includes(qLower) || t.name.toLowerCase().includes(qLower) || t.from.toLowerCase().includes(qLower) || t.to.toLowerCase().includes(qLower)
-    );
+    const delayDebounce = setTimeout(() => {
+      const qLower = query.toLowerCase();
+      const localMatches = POPULAR_TRAINS.filter(
+        t => t.number.includes(qLower) || t.name.toLowerCase().includes(qLower) || t.from.toLowerCase().includes(qLower) || t.to.toLowerCase().includes(qLower)
+      );
 
-    setSuggestions(localMatches);
-    setShowDropdown(true);
+      setSuggestions(localMatches);
+      setShowDropdown(true);
 
-    // Fetch from our server-side proxy (hides external API from browser DevTools)
-    if (/^\d{5}$/.test(query.trim())) {
-      setLoading(true);
-      fetch(`/api/train-info?number=${query.trim()}`, {
-        headers: { 'x-internal-api-key': process.env.NEXT_PUBLIC_INTERNAL_API_KEY || '' }
-      })
-        .then(res => res.json())
-        .then(json => {
-          if (json?.success && json?.data?.train) {
-            const tr = json.data.train;
-            const apiTrain = {
-              number: tr.number,
-              name: tr.name,
-              from: tr.source?.code || 'ORIGIN',
-              to: tr.destination?.code || 'DEST',
-              days: Array.isArray(tr.runDays) ? tr.runDays.join(', ') : 'Daily'
-            };
-            setSuggestions(prev => {
-              const exists = prev.some(p => p.number === apiTrain.number);
-              return exists ? prev : [apiTrain, ...prev];
-            });
+      // Fetch from our server-side proxy (uses time-based dynamic tokens automatically!)
+      if (/^\d{4,5}$/.test(query.trim())) {
+        setLoading(true);
+        const timestamp = Date.now().toString();
+        const clientSecret = "rls_internal_9x2k7m4p8q";
+        const raw = timestamp + "_" + clientSecret;
+        let hash = 0;
+        for (let i = 0; i < raw.length; i++) {
+          const char = raw.charCodeAt(i);
+          hash = ((hash << 5) - hash) + char;
+          hash = hash & hash;
+        }
+        const token = Math.abs(hash).toString(36);
+
+        fetch(`/api/train-info?number=${query.trim()}`, {
+          headers: {
+            'x-railsathi-token': token,
+            'x-railsathi-time': timestamp
           }
         })
-        .catch(() => {})
-        .finally(() => setLoading(false));
-    }
+          .then(res => res.json())
+          .then(json => {
+            if (json?.success && json?.data?.train) {
+              const tr = json.data.train;
+              const apiTrain = {
+                number: tr.number,
+                name: tr.name,
+                from: tr.source?.code || 'ORIGIN',
+                to: tr.destination?.code || 'DEST',
+                days: Array.isArray(tr.runDays) ? tr.runDays.join(', ') : 'Daily'
+              };
+              setSuggestions(prev => {
+                const exists = prev.some(p => p.number === apiTrain.number);
+                return exists ? prev : [apiTrain, ...prev];
+              });
+            }
+          })
+          .catch(() => {})
+          .finally(() => setLoading(false));
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounce);
   }, [query]);
 
   const handleSelect = (number: string, name: string, from?: string, to?: string) => {
@@ -163,12 +194,16 @@ export default function TrainSearchCard({ onSelectTrain }: TrainSearchCardProps)
 
         {/* Autocomplete Dropdown List */}
         {showDropdown && suggestions.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1.5 bg-[#141E2E] border border-[#2B3E5C] rounded-2xl shadow-2xl overflow-hidden z-40 max-h-60 overflow-y-auto divide-y divide-[#202E44]">
+          <div 
+            ref={dropdownRef}
+            className="absolute top-full left-0 right-0 mt-1.5 bg-[#141E2E] border border-[#2B3E5C] rounded-2xl shadow-2xl overflow-y-auto z-40 max-h-64 divide-y divide-[#202E44] [will-change:transform] overscroll-contain touch-pan-y"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
             {suggestions.map((st: any) => (
               <button
                 key={st.number}
                 onClick={() => handleSelect(st.number, st.name, st.from, st.to)}
-                className="w-full text-left p-3 hover:bg-[#1C293F] transition-all flex items-center justify-between group"
+                className="w-full text-left p-3.5 hover:bg-[#1C293F] active:bg-[#20314C] transition-all flex items-center justify-between group cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-cyan-950 text-cyan-400 border border-cyan-500/40 flex items-center justify-center font-black text-xs flex-shrink-0">

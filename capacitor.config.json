@@ -1,0 +1,9 @@
+{
+  "appId": "com.railsathi.app",
+  "appName": "RailSathi",
+  "webDir": "out",
+  "server": {
+    "url": "https://railsathi.vercel.app",
+    "cleartext": true
+  }
+}
