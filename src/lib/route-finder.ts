@@ -380,20 +380,18 @@ export async function findConnectingRoutes(
   return connectingRoutes;
 }
 
-export function findNearestHub(stationCode: string): string | null {
-  let minDistance = Infinity;
-  let nearestJunction = null;
+export function findNearbyHubs(stationCode: string, maxRadiusKm = 250): { code: string, distance: number }[] {
+  const hubs: { code: string, distance: number }[] = [];
 
   for (const j of JUNCTIONS) {
     if (j === stationCode) continue;
     const dist = calculateDistanceKm(stationCode, j);
-    if (dist < minDistance && dist > 0) {
-      minDistance = dist;
-      nearestJunction = j;
+    if (dist <= maxRadiusKm && dist > 0) {
+      hubs.push({ code: j, distance: dist });
     }
   }
 
-  return minDistance <= 250 ? nearestJunction : null;
+  return hubs.sort((a, b) => a.distance - b.distance).slice(0, 5);
 }
 
 export async function findRoutes(
@@ -408,27 +406,55 @@ export async function findRoutes(
   }
   const connectingRoutes = await findConnectingRoutes(from, to, date, fastestDirectMins);
 
-  // Auto Nearby Hub Fallback Logic:
-  // If no routes are found between from and to, query nearest major hub of the source
+  // Auto Multi-Hub Fallback Logic:
+  // If no routes are found between from and to, query all nearby major hubs of the source station
   if (directRoutes.length === 0 && connectingRoutes.length === 0) {
-    const nearestHub = findNearestHub(from);
-    if (nearestHub && nearestHub !== from && nearestHub !== to) {
-      const hubRoutes = await findRoutes(nearestHub, to, date);
-      const hubDist = calculateDistanceKm(from, nearestHub);
+    const nearbyHubs = findNearbyHubs(from);
+    
+    let allHubDirect: Route[] = [];
+    let allHubConnecting: Route[] = [];
+    
+    // Call searches sequentially or in parallel for the hubs
+    const hubSearchPromises = nearbyHubs.map(async (hub) => {
+      if (hub.code === from || hub.code === to) return null;
+      try {
+        // Query direct and connecting routes from the hub
+        const direct = await findDirectRoutes(hub.code, to, date);
+        const connecting = await findConnectingRoutes(hub.code, to, date, null);
+        return { hub, direct, connecting };
+      } catch (e) {
+        return null;
+      }
+    });
+    
+    const searchResults = await Promise.all(hubSearchPromises);
+    
+    searchResults.forEach((res) => {
+      if (!res) return;
+      const { hub, direct, connecting } = res;
       
-      const hubDirect = hubRoutes.directRoutes.map(r => ({
+      const hubDirect = direct.map(r => ({
         ...r,
         tags: [...(r.tags || []), 'nearby-hub'] as RouteTag[],
-        nearbyHubWarning: `No trains found from ${from}. Showing routes from nearest major station ${nearestHub} (~${hubDist} km away).`
+        nearbyHubWarning: `No trains found from ${from}. Showing routes from nearest major station ${hub.code} (~${hub.distance} km away).`
       }));
       
-      const hubConnecting = hubRoutes.connectingRoutes.map(r => ({
+      const hubConnecting = connecting.map(r => ({
         ...r,
         tags: [...(r.tags || []), 'nearby-hub'] as RouteTag[],
-        nearbyHubWarning: `No trains found from ${from}. Showing routes from nearest major station ${nearestHub} (~${hubDist} km away).`
+        nearbyHubWarning: `No trains found from ${from}. Showing routes from nearest major station ${hub.code} (~${hub.distance} km away).`
       }));
       
-      return { directRoutes: hubDirect, connectingRoutes: hubConnecting };
+      allHubDirect = allHubDirect.concat(hubDirect);
+      allHubConnecting = allHubConnecting.concat(hubConnecting);
+    });
+    
+    // Sort all routes by total travel duration
+    allHubDirect.sort((a, b) => a.totalDurationMinutes - b.totalDurationMinutes);
+    allHubConnecting.sort((a, b) => a.totalDurationMinutes - b.totalDurationMinutes);
+    
+    if (allHubDirect.length > 0 || allHubConnecting.length > 0) {
+      return { directRoutes: allHubDirect, connectingRoutes: allHubConnecting };
     }
   }
 
