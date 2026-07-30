@@ -438,18 +438,36 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     // Calculate actual distance between these two stations from route details!
     const d1 = currentStn?.distanceKm || currentStn?.distance || 0;
     const d2 = nextStn?.distanceKm || nextStn?.distance || 0;
-    const actualSegmentDistance = Math.max(2, Math.round(d2 - d1)); // e.g. 8 km or 15 km
+    const segmentDistance = Math.max(1, Math.round(d2 - d1)); // Total distance between A and B
     
-    // Calculate a real-time progress countdown based on the actual segment distance
-    const timeCycle = actualSegmentDistance * 10; // 10 seconds per km
-    const timeSec = Math.floor(Date.now() / 1000) % (timeCycle + 15); // +15 seconds for arrival state
+    // Calculate actual segment progress using expected departure and arrival timestamps
+    const depTimeStr = currentStn?.actualDeparture || currentStn?.scheduledDeparture;
+    const arrTimeStr = nextStn?.actualArrival || nextStn?.scheduledArrival;
     
-    if (timeSec > timeCycle) {
-      return `Arrived ${nextStn.stationName}`;
+    if (depTimeStr && arrTimeStr) {
+      const depTime = new Date(depTimeStr);
+      const arrTime = new Date(arrTimeStr);
+      const nowTime = new Date();
+      
+      if (!isNaN(depTime.getTime()) && !isNaN(arrTime.getTime())) {
+        const totalDuration = arrTime.getTime() - depTime.getTime();
+        const elapsed = nowTime.getTime() - depTime.getTime();
+        
+        if (totalDuration > 0 && elapsed > 0) {
+          const progress = Math.min(0.95, elapsed / totalDuration); // max 95% until actually arrived
+          const remainingKm = Math.max(1, Math.round(segmentDistance * (1 - progress)));
+          const remainingMins = Math.max(1, Math.round((arrTime.getTime() - nowTime.getTime()) / 60_000));
+          
+          if (nowTime.getTime() >= arrTime.getTime()) {
+            return `Arrived ${nextStn.stationName}`;
+          }
+          return `${remainingKm} km to ${nextStn.stationName} • ETA ${remainingMins} mins`;
+        }
+      }
     }
     
-    const remainingKm = Math.max(1, actualSegmentDistance - Math.floor(timeSec / 10));
-    return `${remainingKm} km to ${nextStn.stationName}`;
+    // Fallback: If time calculation is out of range, show simple status
+    return `Heading to ${nextStn.stationName}`;
   };
 
   const nextHalt = uniqueRoute.find((s: any) => s.sequence > currentSeq && s.isHalt) || uniqueRoute[uniqueRoute.length - 1];
