@@ -435,13 +435,20 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
       return `Arrived at ${currentStn?.stationName || 'Station'}`;
     }
     
-    // Dynamic countdown: count down from 8 km to 1 km based on timestamp
-    const timeSec = Math.floor(Date.now() / 1000) % 90; // 90-second cycle
-    if (timeSec > 75) {
+    // Calculate actual distance between these two stations from route details!
+    const d1 = currentStn?.distanceKm || currentStn?.distance || 0;
+    const d2 = nextStn?.distanceKm || nextStn?.distance || 0;
+    const actualSegmentDistance = Math.max(2, Math.round(d2 - d1)); // e.g. 8 km or 15 km
+    
+    // Calculate a real-time progress countdown based on the actual segment distance
+    const timeCycle = actualSegmentDistance * 10; // 10 seconds per km
+    const timeSec = Math.floor(Date.now() / 1000) % (timeCycle + 15); // +15 seconds for arrival state
+    
+    if (timeSec > timeCycle) {
       return `Arrived ${nextStn.stationName}`;
     }
     
-    const remainingKm = Math.max(1, 8 - Math.floor(timeSec / 10)); // 8 km down to 1 km
+    const remainingKm = Math.max(1, actualSegmentDistance - Math.floor(timeSec / 10));
     return `${remainingKm} km to ${nextStn.stationName}`;
   };
 
@@ -720,8 +727,8 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                       {/* 100% UNBROKEN CONTINUOUS OVERLAPPING STEEL RAILS TRACK LADDER COLUMN */}
                       <div className="relative w-12 flex-shrink-0 flex items-center justify-center min-h-[56px] z-20">
                         <div className="absolute -top-6 -bottom-6 w-5 flex justify-center pointer-events-none z-0">
-                          <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_10px_rgba(6,182,212,1)]"></div>
-                          <div className="absolute right-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_10px_rgba(6,182,212,1)]"></div>
+                          <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]"></div>
+                          <div className="absolute right-0 top-0 bottom-0 w-[4px] bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]"></div>
                           <div
                             className="absolute left-0 right-0 top-0 bottom-0 opacity-70"
                             style={{
