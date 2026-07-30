@@ -43,7 +43,8 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
   const [gpsStatus, setGpsStatus] = useState<'off' | 'connecting' | 'active' | 'denied' | 'error'>('off');
 
   const gpsWatchIdRef = useRef<number | null>(null);
-  const [showActiveTooltip, setShowActiveTooltip] = useState(true);
+  const timelineScrollContainerRef = useRef<HTMLDivElement>(null);
+  const activeStationRef = useRef<HTMLDivElement>(null);
   const lastPosRef = useRef<{ lat: number; lng: number; timestamp: number } | null>(null);
 
   const calcHaversineMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -155,6 +156,19 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
   }, [showSpeedometerModal]);
 
 
+
+
+  // Auto-scroll to active station on load
+  useEffect(() => {
+    if (!loading && data) {
+      setTimeout(() => {
+        activeStationRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }, 500);
+    }
+  }, [loading, data]);
 
   // ── Mobile Single-Back History Handler ──────────────────────────────────
   useEffect(() => {
@@ -605,7 +619,17 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
         </div>
 
         {/* ── Main Scrollable Timeline ───────────────────────────── */}
-        <div className="flex-1 overflow-y-auto bg-[#0B0F17] px-0 py-0 relative z-10">
+        <div ref={timelineScrollContainerRef} className="flex-1 overflow-y-auto bg-[#0B0F17] px-0 py-0 relative z-10">
+          <style>{`
+            @keyframes tooltipGlow {
+              0%, 100% { opacity: 0; transform: scale(0.9) translateY(4px); }
+              15%, 55% { opacity: 1; transform: scale(1) translateY(0); }
+              70% { opacity: 0; transform: scale(0.9) translateY(-4px); }
+            }
+            .animate-tooltip-glow {
+              animation: tooltipGlow 10s infinite ease-in-out;
+            }
+          `}</style>
 
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 text-gray-400 gap-3">
@@ -653,13 +677,8 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                   return (
                     <div
                       key={`${stn.stationCode || 'stn'}-${stn.sequence || idx}`}
-                      onClick={() => {
-                        if (isCurrentLoc) {
-                          setShowActiveTooltip(!showActiveTooltip);
-                        } else {
-                          toggleSection(stn.sectionId);
-                        }
-                      }}
+                      ref={isCurrentLoc ? activeStationRef : null}
+                      onClick={() => toggleSection(stn.sectionId)}
                       className={`relative flex items-center justify-between py-3.5 px-3 transition-colors cursor-pointer ${
                         isHalt
                           ? 'bg-[#0B0F17] hover:bg-[#121927]'
@@ -694,13 +713,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
                         {/* Station Dot / Live Train Badge */}
                         {isCurrentLoc ? (
-                          <div 
-                            className="relative flex items-center justify-center z-30 cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowActiveTooltip(!showActiveTooltip);
-                            }}
-                          >
+                          <div className="relative flex items-center justify-center z-30">
                             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-400 via-blue-500 to-purple-600 border-2 border-white shadow-[0_0_18px_rgba(6,182,212,1)] flex items-center justify-center animate-bounce">
                               <Train className="w-5 h-5 text-white" />
                             </div>
@@ -739,8 +752,8 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                           )}
                         </div>
 
-                        {isCurrentLoc && showActiveTooltip && (
-                          <div className="mt-2 inline-flex flex-col bg-[#1B8A5A] text-white rounded-lg px-3 py-1 text-xs font-black shadow-md border border-emerald-500/20 max-w-[220px]">
+                        {isCurrentLoc && (
+                          <div className="mt-2 inline-flex flex-col bg-[#1B8A5A] text-white rounded-lg px-3 py-1 text-xs font-black shadow-md border border-emerald-500/20 max-w-[220px] animate-tooltip-glow">
                             <div>Arrived {stn.stationName}</div>
                             <div className="text-[9px] text-emerald-100/90 font-medium mt-0.5">(Updated few seconds ago)</div>
                           </div>
