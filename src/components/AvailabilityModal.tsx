@@ -66,13 +66,8 @@ export default function AvailabilityModal({ leg, onClose, liveClasses }: Availab
   };
 
   useEffect(() => {
-    if (liveClasses && liveClasses.length > 0) {
-       setClassesData(liveClasses.filter((c: any) => c.status !== null));
-       setLoading(false);
-       return;
-    }
     fetchAvailability(false);
-  }, [leg, liveClasses]);
+  }, [leg]);
 
   const formattedDate = new Date(leg.journeyDate).toLocaleDateString('en-GB', {
     weekday: 'short',
