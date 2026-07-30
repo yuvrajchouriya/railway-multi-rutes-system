@@ -10,6 +10,7 @@ import ResultsSection from '@/components/ResultsSection';
 import RouteCard from '@/components/RouteCard';
 import LiveTrainModal from '@/components/LiveTrainModal';
 import { Train, Heart, X, Trash2 } from 'lucide-react';
+import Footer from '@/components/Footer';
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
@@ -354,6 +355,7 @@ export default function Home() {
       </div>
 
       {/* Note: LiveLogs has been hidden from UI per user request */}
+      <Footer />
     </div>
   );
 }
