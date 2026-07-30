@@ -189,6 +189,7 @@ export async function GET(request: Request) {
     }
 
     // Perform Bulk Upsert in background so it doesn't block the current request
+    // Note: If forceRefresh is active, this overwrites cached entries with fresh live data.
     if (allCacheInserts.length > 0) {
        supabase.from('route_availability_cache').upsert(allCacheInserts, { onConflict: 'train_no,from_station,to_station,journey_date,class_type' }).then();
     }
