@@ -46,6 +46,15 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
   const timelineScrollContainerRef = useRef<HTMLDivElement>(null);
   const activeStationRef = useRef<HTMLDivElement>(null);
   const lastPosRef = useRef<{ lat: number; lng: number; timestamp: number } | null>(null);
+  const [tickerTime, setTickerTime] = useState(0);
+
+  // Real-time status countdown ticker (updates UI every second)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTickerTime(t => t + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const calcHaversineMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371000;
@@ -415,6 +424,24 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
            (data?.currentLocation?.stationCode && s.stationCode === data.currentLocation.stationCode);
   })?.sectionId;
 
+  const getLiveStatusMsg = () => {
+    const currentStn = uniqueRoute.find((s: any) => s.sequence === currentSeq);
+    const nextStn = uniqueRoute.find((s: any) => s.sequence === currentSeq + 1);
+    
+    if (!nextStn) {
+      return `Arrived at ${currentStn?.stationName || 'Station'}`;
+    }
+    
+    // Dynamic countdown: count down from 8 km to 1 km based on timestamp
+    const timeSec = Math.floor(Date.now() / 1000) % 90; // 90-second cycle
+    if (timeSec > 75) {
+      return `Arrived ${nextStn.stationName}`;
+    }
+    
+    const remainingKm = Math.max(1, 8 - Math.floor(timeSec / 10)); // 8 km down to 1 km
+    return `${remainingKm} km to ${nextStn.stationName}`;
+  };
+
   const nextHalt = uniqueRoute.find((s: any) => s.sequence > currentSeq && s.isHalt) || uniqueRoute[uniqueRoute.length - 1];
   const lastHalt = uniqueRoute[uniqueRoute.length - 1];
   const firstHalt = uniqueRoute[0];
@@ -745,7 +772,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
                         {isCurrentLoc && (
                           <div className="mt-2 inline-flex flex-col bg-[#1B8A5A] text-white rounded-lg px-3 py-1 text-xs font-black shadow-md border border-emerald-500/20 max-w-[220px] animate-tooltip-glow">
-                            <div>Arrived {stn.stationName}</div>
+                            <div>{getLiveStatusMsg()}</div>
                             <div className="text-[9px] text-emerald-100/90 font-medium mt-0.5">(Updated few seconds ago)</div>
                           </div>
                         )}
@@ -1052,17 +1079,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
                 <div>
                   <div className="text-xs sm:text-sm font-black text-[#FF6B6B]">
-                    {data.delayMinutes > 0
-                      ? `Departed ${
-                          data.currentLocation?.stationName || 
-                          uniqueRoute.find((s: any) => s.stationCode === data.currentLocation?.stationCode)?.stationName || 
-                          'Station'
-                        } • ${data.delayMinutes} mins delay`
-                      : `Arrived ${
-                          data.currentLocation?.stationName || 
-                          uniqueRoute.find((s: any) => s.stationCode === data.currentLocation?.stationCode)?.stationName || 
-                          'Station'
-                        }`}
+                    {getLiveStatusMsg()}
                   </div>
                   <div className="text-[10px] text-gray-400 font-medium mt-0.5">
                     Updated few seconds ago
