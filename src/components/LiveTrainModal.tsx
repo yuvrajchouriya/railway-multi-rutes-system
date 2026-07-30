@@ -742,15 +742,18 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                         )}
                       </div>
 
-                      {/* 100% UNBROKEN CONTINUOUS OVERLAPPING STEEL RAILS TRACK LADDER COLUMN */}
-                      <div className="relative w-12 flex-shrink-0 flex items-center justify-center min-h-[56px] z-20">
-                        <div className="absolute -top-6 -bottom-6 w-5 flex justify-center pointer-events-none z-0">
-                          <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]"></div>
-                          <div className="absolute right-0 top-0 bottom-0 w-[4px] bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]"></div>
+                       {/* 100% UNBROKEN CONTINUOUS OVERLAPPING STEEL RAILS TRACK LADDER COLUMN */}
+                      <div className="relative w-12 flex-shrink-0 flex items-center justify-center min-h-[64px] z-20">
+                        <div className="absolute top-0 bottom-0 w-5 flex justify-center pointer-events-none z-0 h-[100%] overflow-visible">
+                          {/* Left Rail */}
+                          <div className="absolute left-0 -top-[50%] -bottom-[50%] w-[4px] bg-[#3B82F6] shadow-[0_0_8px_rgba(59,130,246,0.6)]"></div>
+                          {/* Right Rail */}
+                          <div className="absolute right-0 -top-[50%] -bottom-[50%] w-[4px] bg-[#3B82F6] shadow-[0_0_8px_rgba(59,130,246,0.6)]"></div>
+                          {/* Metal Sleepers (Ties) */}
                           <div
-                            className="absolute left-0 right-0 top-0 bottom-0 opacity-70"
+                            className="absolute left-0 right-0 -top-[50%] -bottom-[50%] opacity-80"
                             style={{
-                              backgroundImage: 'linear-gradient(to bottom, #cbd5e1 2px, transparent 2px)',
+                              backgroundImage: 'linear-gradient(to bottom, #475569 2px, transparent 2px)',
                               backgroundSize: '100% 12px'
                             }}
                           ></div>
