@@ -57,16 +57,18 @@ export default function TrainSearchCard({ onSelectTrain }: TrainSearchCardProps)
     }
 
     const delayDebounce = setTimeout(() => {
-      const qLower = query.toLowerCase();
+      const qLower = query.toLowerCase().trim();
+      
+      // Look up popular trains first locally
       const localMatches = POPULAR_TRAINS.filter(
-        t => t.number.includes(qLower) || t.name.toLowerCase().includes(qLower) || t.from.toLowerCase().includes(qLower) || t.to.toLowerCase().includes(qLower)
+        t => t.number.includes(qLower) || 
+             t.name.toLowerCase().includes(qLower) || 
+             t.from.toLowerCase().includes(qLower) || 
+             t.to.toLowerCase().includes(qLower)
       );
 
-      setSuggestions(localMatches);
-      setShowDropdown(true);
-
-      // Fetch from our server-side proxy (uses time-based dynamic tokens automatically!)
-      if (/^\d{4,5}$/.test(query.trim())) {
+      // If user typed 4 or 5 digits, trigger dynamic API fetch
+      if (/^\d{4,5}$/.test(qLower)) {
         setLoading(true);
         const timestamp = Date.now().toString();
         const clientSecret = "rls_internal_9x2k7m4p8q";
@@ -79,7 +81,7 @@ export default function TrainSearchCard({ onSelectTrain }: TrainSearchCardProps)
         }
         const token = Math.abs(hash).toString(36);
 
-        fetch(`/api/train-info?number=${query.trim()}`, {
+        fetch(`/api/train-info?number=${qLower}`, {
           headers: {
             'x-railsathi-token': token,
             'x-railsathi-time': timestamp
@@ -97,15 +99,22 @@ export default function TrainSearchCard({ onSelectTrain }: TrainSearchCardProps)
                 days: Array.isArray(tr.runDays) ? tr.runDays.join(', ') : 'Daily'
               };
               setSuggestions(prev => {
-                const exists = prev.some(p => p.number === apiTrain.number);
-                return exists ? prev : [apiTrain, ...prev];
+                const filtered = prev.filter(p => p.number !== apiTrain.number);
+                return [apiTrain, ...filtered];
               });
+            } else {
+              setSuggestions(localMatches);
             }
           })
-          .catch(() => {})
+          .catch(() => {
+            setSuggestions(localMatches);
+          })
           .finally(() => setLoading(false));
+      } else {
+        setSuggestions(localMatches);
+        setShowDropdown(true);
       }
-    }, 300);
+    }, 200);
 
     return () => clearTimeout(delayDebounce);
   }, [query]);
