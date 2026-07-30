@@ -19,7 +19,9 @@ const securityHeaders = [
   { key: 'X-DNS-Prefetch-Control', value: 'on' },
   // Restrict browser features (geolocation allowed for GPS speedometer)
   { key: 'Permissions-Policy', value: 'geolocation=(self), camera=(), microphone=(), payment=()' },
-  // Content Security Policy — restrict resource origins
+  // Strict-Transport-Security (HSTS)
+  { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
+  // Content Security Policy — restrict resource origins to self
   {
     key: 'Content-Security-Policy',
     value: [
@@ -28,7 +30,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob:",
-      "connect-src 'self' https://cttrainsapi.confirmtkt.com https://ct.confirmtkt.com https://railradar.in https://irctc1.p.rapidapi.com https://enquiry.indianrail.gov.in",
+      "connect-src 'self'",
       "worker-src 'self' blob:",
       "frame-ancestors 'none'",
     ].join('; ')

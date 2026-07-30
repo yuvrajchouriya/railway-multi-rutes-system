@@ -14,10 +14,27 @@ export function isValidTrainNumber(trainNo: string | null | undefined): boolean 
   return /^\d{4,5}$/.test(trainNo.trim());
 }
 
-/** Date: YYYY-MM-DD or DD-MM-YYYY format */
+/** Date: YYYY-MM-DD or DD-MM-YYYY format, max 60 days in the future */
 export function isValidDate(date: string | null | undefined): boolean {
   if (!date) return false;
-  return /^\d{4}-\d{2}-\d{2}$/.test(date.trim()) || /^\d{2}-\d{2}-\d{4}$/.test(date.trim());
+  const isMatch = /^\d{4}-\d{2}-\d{2}$/.test(date.trim()) || /^\d{2}-\d{2}-\d{4}$/.test(date.trim());
+  if (!isMatch) return false;
+
+  try {
+    const parsedDate = new Date(date.trim());
+    if (isNaN(parsedDate.getTime())) return false;
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const maxFuture = new Date();
+    maxFuture.setDate(now.getDate() + 60);
+    maxFuture.setHours(23, 59, 59, 999);
+
+    // Allow today, past dates (for queries), but block >60 days in future
+    return parsedDate <= maxFuture;
+  } catch (e) {
+    return false;
+  }
 }
 
 /** PNR: exactly 10 digits */
