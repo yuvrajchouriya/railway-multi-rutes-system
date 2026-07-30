@@ -253,22 +253,8 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
         }
         if (!cSeq) cSeq = 1;
 
-        let currentSec = 0;
-        let activeSec = 1;
-        json.data.route.forEach((stn: any) => {
-          if (stn.isHalt) {
-            currentSec++;
-          }
-          if (stn.sequence === cSeq || (json.data.currentLocation?.stationCode && stn.stationCode === json.data.currentLocation.stationCode)) {
-            activeSec = currentSec === 0 ? 1 : currentSec;
-          }
-        });
-
-        setExpandedSections(prev => {
-          const next = new Set(prev);
-          next.add(activeSec);
-          return next;
-        });
+        // Keep all sub-station sections collapsed by default.
+        setExpandedSections(new Set());
       }
     } catch (err: any) {
       try {
@@ -421,11 +407,13 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
   const visibleRoute = processedRoute.filter((stn: any) => {
     if (stn.isHalt) return true;
-    const isCurrentLoc = (stn.sequence === currentSeq) || 
-                         (data?.currentLocation?.stationCode && stn.stationCode === data.currentLocation.stationCode);
-    if (isCurrentLoc) return true;
     return expandedSections.has(stn.sectionId);
   });
+
+  const activeSectionId = processedRoute.find((s: any) => {
+    return (s.sequence === currentSeq) || 
+           (data?.currentLocation?.stationCode && s.stationCode === data.currentLocation.stationCode);
+  })?.sectionId;
 
   const nextHalt = uniqueRoute.find((s: any) => s.sequence > currentSeq && s.isHalt) || uniqueRoute[uniqueRoute.length - 1];
   const lastHalt = uniqueRoute[uniqueRoute.length - 1];
@@ -674,10 +662,13 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                   const isDelayedArr = stn.delayArrivalMinutes > 0;
                   const isDelayedDep = stn.delayDepartureMinutes > 0;
 
+                  const isTargetScrollStn = (stn.sequence === currentSeq) || 
+                                            (stn.isHalt && stn.sectionId === activeSectionId && !visibleRoute.some((v: any) => v.sequence === currentSeq));
+
                   return (
                     <div
                       key={`${stn.stationCode || 'stn'}-${stn.sequence || idx}`}
-                      ref={isCurrentLoc ? activeStationRef : null}
+                      ref={isTargetScrollStn ? activeStationRef : null}
                       onClick={() => toggleSection(stn.sectionId)}
                       className={`relative flex items-center justify-between py-3.5 px-3 transition-colors cursor-pointer ${
                         isHalt
