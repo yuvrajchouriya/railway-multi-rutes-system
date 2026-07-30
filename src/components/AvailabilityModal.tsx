@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TrainLeg } from '../types/railway';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ExternalLink, RefreshCw } from 'lucide-react';
 
 const fmtDuration = (m: number) => `${Math.floor(m / 60)}h ${m % 60}m`;
 
@@ -26,22 +26,34 @@ export default function AvailabilityModal({ leg, onClose, liveClasses }: Availab
     };
   }, [onClose]);
 
-  useEffect(() => {
-    if (liveClasses && liveClasses.length > 0) {
-       setClassesData(liveClasses.filter((c: any) => c.status !== null));
-       setLoading(false);
-       return;
-    }
-    
+  // Secure status fetch function
+  const fetchAvailability = (forceRefresh = false) => {
     setLoading(true);
-    
     let apiDate = leg.journeyDate;
     if (apiDate.includes('-') && apiDate.split('-')[0].length === 4) {
        const [year, month, day] = apiDate.split('-');
        apiDate = `${day}-${month}-${year}`;
     }
 
-    fetch(`/api/fares?trainNo=${leg.trainNumber}&from=${leg.fromStation.code}&to=${leg.toStation.code}&date=${apiDate}`)
+    const timestamp = Date.now().toString();
+    const clientSecret = "rls_internal_9x2k7m4p8q";
+    const raw = timestamp + "_" + clientSecret;
+    let hash = 0;
+    for (let i = 0; i < raw.length; i++) {
+      const char = raw.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    const token = Math.abs(hash).toString(36);
+
+    const url = `/api/fares?trainNo=${leg.trainNumber}&from=${leg.fromStation.code}&to=${leg.toStation.code}&date=${apiDate}${forceRefresh ? '&forceRefresh=true' : ''}`;
+
+    fetch(url, {
+      headers: {
+        'x-railsathi-token': token,
+        'x-railsathi-time': timestamp
+      }
+    })
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data) {
@@ -51,6 +63,15 @@ export default function AvailabilityModal({ leg, onClose, liveClasses }: Availab
       })
       .catch(err => console.error("Failed to fetch live availability", err))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    if (liveClasses && liveClasses.length > 0) {
+       setClassesData(liveClasses.filter((c: any) => c.status !== null));
+       setLoading(false);
+       return;
+    }
+    fetchAvailability(false);
   }, [leg, liveClasses]);
 
   const formattedDate = new Date(leg.journeyDate).toLocaleDateString('en-GB', {
@@ -72,6 +93,15 @@ export default function AvailabilityModal({ leg, onClose, liveClasses }: Availab
                Seat Availability
             </div>
          </div>
+         
+         <button 
+           onClick={() => fetchAvailability(true)}
+           disabled={loading}
+           className="flex items-center gap-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50 text-white font-bold py-1.5 px-3 rounded-lg text-xs transition-all active:scale-95 shadow-md"
+         >
+           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+           <span>Refresh Status</span>
+         </button>
       </div>
 
       <div className="max-w-4xl mx-auto w-full px-4 pt-6">
