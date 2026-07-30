@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { findRoutes, findDirectRoutes, findConnectingRoutes } from '@/lib/route-finder';
+import { findRoutes, findDirectRoutes, findConnectingRoutes, findNearbyHubs } from '@/lib/route-finder';
+import { calculateDistanceKm } from '@/lib/geo';
 import { createClient } from '@supabase/supabase-js';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limiter';
 import { isValidStationCode, isValidDate } from '@/lib/validators';
 import { verifyApiKey } from '@/lib/shield';
+import { RouteTag } from '@/types/railway';
 
 export async function GET(request: NextRequest) {
   // ── API Shield: Block all requests not from our app ─────────────────────
@@ -56,7 +58,24 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ directRoutes: cacheData.routes_json, source: 'cache' });
       }
 
-      const directRoutes = await findDirectRoutes(from, to, date);
+      let directRoutes = await findDirectRoutes(from, to, date);
+      
+      // Fallback: If no direct routes, check nearby hubs (Nagpur, Jabalpur, etc.)
+      if (directRoutes.length === 0) {
+        const nearbyHubs = findNearbyHubs(from);
+        for (const hub of nearbyHubs) {
+          if (hub.code === from || hub.code === to) continue;
+          const hubDirect = await findDirectRoutes(hub.code, to, date);
+          if (hubDirect.length > 0) {
+            const tagged = hubDirect.map(r => ({
+              ...r,
+              tags: [...(r.tags || []), 'nearby-hub'] as RouteTag[],
+              nearbyHubWarning: `No direct trains from ${from}. Showing direct trains from nearest major station ${hub.code} (~${hub.distance} km away).`
+            }));
+            directRoutes = directRoutes.concat(tagged as any);
+          }
+        }
+      }
       
       if (directRoutes.length > 0) {
         supabase.from('saved_routes').upsert({
@@ -108,6 +127,24 @@ export async function GET(request: NextRequest) {
               allConnectingRoutes.push(route);
               controller.enqueue(new TextEncoder().encode(JSON.stringify(route) + '\n'));
             });
+
+            // Nearby Hub Stream Fallback: If 0 connecting routes found, search from nearby hubs
+            if (allConnectingRoutes.length === 0) {
+              const nearbyHubs = findNearbyHubs(from);
+              for (const hub of nearbyHubs) {
+                if (hub.code === from || hub.code === to) continue;
+                
+                await findConnectingRoutes(hub.code, to, date, null, (route) => {
+                  const taggedRoute = {
+                    ...route,
+                    tags: [...(route.tags || []), 'nearby-hub'] as RouteTag[],
+                    nearbyHubWarning: `No trains found from ${from}. Showing connecting routes via nearest major station ${hub.code} (~${hub.distance} km away).`
+                  };
+                  allConnectingRoutes.push(taggedRoute);
+                  controller.enqueue(new TextEncoder().encode(JSON.stringify(taggedRoute) + '\n'));
+                });
+              }
+            }
             
             if (allConnectingRoutes.length > 0) {
               supabase.from('saved_routes').upsert({
