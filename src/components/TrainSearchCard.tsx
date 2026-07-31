@@ -215,7 +215,7 @@ export default function TrainSearchCard({ onSelectTrain }: TrainSearchCardProps)
                 className="w-full text-left p-3.5 hover:bg-[#1C293F] active:bg-[#20314C] transition-all flex items-center justify-between group cursor-pointer pointer-events-auto"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-cyan-950 text-cyan-400 border border-cyan-500/40 flex items-center justify-center font-black text-xs flex-shrink-0">
+                  <div className="min-w-[44px] h-7 px-1.5 rounded-lg bg-cyan-950 text-cyan-400 border border-cyan-500/40 flex items-center justify-center font-black text-[11px] tracking-tight flex-shrink-0 overflow-hidden">
                     {st.number}
                   </div>
                   <div>

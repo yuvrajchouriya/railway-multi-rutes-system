@@ -694,8 +694,26 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           {!loading && !error && data?.route && (
             <div className="relative min-h-full">
               
-              {/* Station Rows */}
+              {/* Station Rows with Single Continuous Track */}
               <div className="flex flex-col relative z-10 overflow-hidden">
+                {/* SINGLE UNBROKEN CONTINUOUS TRACK COLUMN FOR ENTIRE ROUTE */}
+                <div className="absolute top-0 bottom-0 left-[100px] w-12 flex justify-center pointer-events-none z-0 overflow-hidden">
+                  <div className="relative w-5 h-full">
+                    {/* Left Rail */}
+                    <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-[#3B82F6] shadow-[0_0_8px_rgba(59,130,246,0.6)]"></div>
+                    {/* Right Rail */}
+                    <div className="absolute right-0 top-0 bottom-0 w-[4px] bg-[#3B82F6] shadow-[0_0_8px_rgba(59,130,246,0.6)]"></div>
+                    {/* Continuous Single Metal Sleepers (Ties) */}
+                    <div
+                      className="absolute left-0 right-0 top-0 bottom-0 opacity-80"
+                      style={{
+                        backgroundImage: 'linear-gradient(to bottom, #475569 2px, transparent 2px)',
+                        backgroundSize: '100% 16px'
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
                 {visibleRoute.map((stn: any, idx: number) => {
                   const isCurrentLoc = (stn.sequence === currentSeq) || 
                                        (data?.currentLocation?.stationCode && stn.stationCode === data.currentLocation.stationCode);
@@ -742,27 +760,12 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                         )}
                       </div>
 
-                       {/* 100% UNBROKEN CONTINUOUS OVERLAPPING STEEL RAILS TRACK LADDER COLUMN */}
+                       {/* Station Point / Live Train Badge Column */}
                       <div className="relative w-12 flex-shrink-0 flex items-center justify-center min-h-[64px] z-20">
-                        <div className="absolute top-0 bottom-0 w-5 flex justify-center pointer-events-none z-0 h-[100%] overflow-visible">
-                          {/* Left Rail */}
-                          <div className="absolute left-0 -top-[100%] -bottom-[100%] w-[4px] bg-[#3B82F6] shadow-[0_0_8px_rgba(59,130,246,0.6)]"></div>
-                          {/* Right Rail */}
-                          <div className="absolute right-0 -top-[100%] -bottom-[100%] w-[4px] bg-[#3B82F6] shadow-[0_0_8px_rgba(59,130,246,0.6)]"></div>
-                          {/* Metal Sleepers (Ties) */}
-                          <div
-                            className="absolute left-0 right-0 -top-[100%] -bottom-[100%] opacity-80"
-                            style={{
-                              backgroundImage: 'linear-gradient(to bottom, #475569 2px, transparent 2px)',
-                              backgroundSize: '100% 12px'
-                            }}
-                          ></div>
-                        </div>
-
                         {/* Station Dot / Live Train Badge */}
                         {isCurrentLoc ? (
                           <div className="relative flex items-center justify-center z-40">
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-400 via-blue-500 to-purple-600 border-2 border-white shadow-[0_0_18px_rgba(6,182,212,1)] flex items-center justify-center animate-bounce z-40">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-400 via-blue-500 to-purple-600 border-2 border-white shadow-[0_0_18px_rgba(6,182,212,1)] flex items-center justify-center z-40">
                               <Train className="w-5 h-5 text-white" />
                             </div>
                             <div className="absolute inset-0 rounded-full bg-cyan-400/60 animate-ping z-30"></div>
