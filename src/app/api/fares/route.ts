@@ -43,15 +43,19 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
   }
   
-  // Format YYYY-MM-DD to DD-MM-YYYY for backend
+  // Ensure YYYY-MM-DD for ConfirmTkt API and DB
+  let formattedDateForCT = date; // ConfirmTkt API expects YYYY-MM-DD
   let formattedDateForDB = date;
-  if (date.includes('-') && date.split('-')[0].length === 4) {
-      const [year, month, day] = date.split('-');
-      date = `${day}-${month}-${year}`; // For API
-      formattedDateForDB = `${year}-${month}-${day}`;
-  } else if (date.includes('-') && date.split('-')[2].length === 4) {
+
+  if (date.includes('-') && date.split('-')[2].length === 4) {
+      // Input was DD-MM-YYYY -> Convert to YYYY-MM-DD
       const [day, month, year] = date.split('-');
+      formattedDateForCT = `${year}-${month}-${day}`;
       formattedDateForDB = `${year}-${month}-${day}`;
+  } else if (date.includes('-') && date.split('-')[0].length === 4) {
+      // Input was YYYY-MM-DD
+      formattedDateForCT = date;
+      formattedDateForDB = date;
   }
 
   try {
@@ -93,10 +97,10 @@ export async function GET(request: Request) {
         }
     }
 
-    // 1. Fetch live from ConfirmTkt directly
-    const apiUrl = `https://cttrainsapi.confirmtkt.com/api/v1/trains/search?sourceStationCode=${from}&destinationStationCode=${to}&journeyDate=${date}&querysource=ct-web`;
+    // 1. Fetch live from ConfirmTkt directly using YYYY-MM-DD date format
+    const apiUrl = `https://cttrainsapi.confirmtkt.com/api/v1/trains/search?sourceStationCode=${from}&destinationStationCode=${to}&journeyDate=${formattedDateForCT}&querysource=ct-web`;
     
-    const response = await fetch(apiUrl);
+    const response = await fetch(apiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
     
     if (!response.ok) {
        throw new Error(`External API returned ${response.status}`);
