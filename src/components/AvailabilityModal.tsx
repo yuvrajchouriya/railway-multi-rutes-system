@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { TrainLeg } from '../types/railway';
 import { ArrowLeft, ExternalLink, RefreshCw } from 'lucide-react';
+import { TrainLeg } from '../types/railway';
+import { apiFetch } from '@/lib/shield';
 
 const fmtDuration = (m: number) => `${Math.floor(m / 60)}h ${m % 60}m`;
 
@@ -48,12 +49,7 @@ export default function AvailabilityModal({ leg, onClose, liveClasses }: Availab
 
     const url = `/api/fares?trainNo=${leg.trainNumber}&from=${leg.fromStation.code}&to=${leg.toStation.code}&date=${apiDate}${forceRefresh ? '&forceRefresh=true' : ''}`;
 
-    fetch(url, {
-      headers: {
-        'x-railsathi-token': token,
-        'x-railsathi-time': timestamp
-      }
-    })
+    apiFetch(url)
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data) {

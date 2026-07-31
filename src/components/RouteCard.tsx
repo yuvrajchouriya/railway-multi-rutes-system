@@ -5,6 +5,7 @@ import { Route, TrainLeg, DatedClassAvailability } from '@/types/railway';
 import AvailabilityBox from './AvailabilityBox';
 import AvailabilityModal from './AvailabilityModal';
 import LiveTrainModal from './LiveTrainModal';
+import { apiFetch } from '@/lib/shield';
 import {
   ChevronDown, ChevronUp, Clock, Utensils,
   Train, ArrowRight, ExternalLink, Star,
@@ -578,7 +579,7 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
           }
           
           const url = `/api/fares?trainNo=${leg.trainNumber}&from=${leg.fromStation.code}&to=${leg.toStation.code}&date=${apiDate}&forceRefresh=true`;
-          const res = await fetch(url);
+          const res = await apiFetch(url);
           if (res.ok) {
              const data = await res.json();
              if (data.success && data.data) {
@@ -916,7 +917,7 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
               <button
                 onClick={() => {
                   try {
-                    const origin = window.location.hostname.includes('vercel.app') ? 'https://railsathi.com' : window.location.origin;
+                    const origin = window.location.origin;
                     const shareUrl = `${origin}/?from=${firstLeg.fromStation.code}&to=${lastLeg.toStation.code}&date=${firstLeg.journeyDate}`;
                     const text = `🚆 RailSathi Route: ${firstLeg.fromStation.name} (${firstLeg.fromStation.code}) ➔ ${lastLeg.toStation.name} (${lastLeg.toStation.code})\nDate: ${firstLeg.journeyDate}\n\n📲 Check train schedules & availability on RailSathi:\n${shareUrl}`;
                     

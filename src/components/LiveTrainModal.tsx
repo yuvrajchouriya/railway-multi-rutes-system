@@ -351,7 +351,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
   };
 
   const handleShare = async () => {
-    const origin = window.location.hostname.includes('vercel.app') ? 'https://railsathi.com' : window.location.origin;
+    const origin = window.location.origin;
     const shareUrl = `${origin}/?trainNo=${trainNumber}`;
     const text = `🚆 Train ${trainNumber} ${data?.train?.name || trainName}\n📍 Status: ${data?.delayMinutes === 0 ? 'On Time' : (data?.delayMinutes || 0) + ' mins late'}\n📌 Current Location: ${data?.currentLocation?.stationName || 'En Route'}\n\n📲 Check Live Status on RailSathi:\n${shareUrl}`;
 
