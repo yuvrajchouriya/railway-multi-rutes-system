@@ -916,15 +916,18 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
               <button
                 onClick={() => {
                   try {
-                    const shareUrl = `${window.location.origin}/?from=${firstLeg.fromStation.code}&to=${lastLeg.toStation.code}&date=${firstLeg.journeyDate}`;
+                    const origin = window.location.hostname.includes('vercel.app') ? 'https://railsathi.com' : window.location.origin;
+                    const shareUrl = `${origin}/?from=${firstLeg.fromStation.code}&to=${lastLeg.toStation.code}&date=${firstLeg.journeyDate}`;
+                    const text = `🚆 RailSathi Route: ${firstLeg.fromStation.name} (${firstLeg.fromStation.code}) ➔ ${lastLeg.toStation.name} (${lastLeg.toStation.code})\nDate: ${firstLeg.journeyDate}\n\n📲 Check train schedules & availability on RailSathi:\n${shareUrl}`;
+                    
                     if (navigator.share) {
                       navigator.share({
                         title: `RailSathi Route: ${firstLeg.fromStation.name} to ${lastLeg.toStation.name}`,
-                        text: `Check train route from ${firstLeg.fromStation.name} (${firstLeg.fromStation.code}) to ${lastLeg.toStation.name} (${lastLeg.toStation.code})`,
+                        text: text,
                         url: shareUrl
                       });
                     } else {
-                      navigator.clipboard.writeText(shareUrl);
+                      navigator.clipboard.writeText(text);
                       alert('Route share link copied to clipboard!');
                     }
                   } catch (e) {}

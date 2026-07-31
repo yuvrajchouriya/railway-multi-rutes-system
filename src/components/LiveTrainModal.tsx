@@ -351,15 +351,20 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
   };
 
   const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/?trainNo=${trainNumber}`;
-    const text = `🚆 Live Status for ${trainNumber} ${data?.train?.name || trainName}:\nStatus: ${data?.delayMinutes === 0 ? 'On Time' : data?.delayMinutes + ' mins late'}\nCurrent Location: ${data?.currentLocation?.stationName || 'En Route'}\nCheck on RailSathi App:`;
-    
+    const origin = window.location.hostname.includes('vercel.app') ? 'https://railsathi.com' : window.location.origin;
+    const shareUrl = `${origin}/?trainNo=${trainNumber}`;
+    const text = `🚆 Train ${trainNumber} ${data?.train?.name || trainName}\n📍 Status: ${data?.delayMinutes === 0 ? 'On Time' : (data?.delayMinutes || 0) + ' mins late'}\n📌 Current Location: ${data?.currentLocation?.stationName || 'En Route'}\n\n📲 Check Live Status on RailSathi:\n${shareUrl}`;
+
     if (navigator.share) {
       try {
-        await navigator.share({ title: `Live Train ${trainNumber}`, text, url: shareUrl });
+        await navigator.share({
+          title: `RailSathi - Live Status Train ${trainNumber}`,
+          text: text,
+          url: shareUrl
+        });
       } catch (e) {}
     } else {
-      navigator.clipboard.writeText(`${text}\n${shareUrl}`);
+      navigator.clipboard.writeText(text);
       setCopiedShare(true);
       setTimeout(() => setCopiedShare(false), 2000);
     }

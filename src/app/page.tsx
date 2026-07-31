@@ -381,7 +381,23 @@ export default function Home() {
         )}
       </div>
 
-      {/* Note: LiveLogs has been hidden from UI per user request */}
+      {/* ── Live Train Modal (Opened via Deep Link or Search) ── */}
+      {selectedLiveTrain && (
+        <LiveTrainModal
+          trainNumber={selectedLiveTrain.trainNumber}
+          trainName={selectedLiveTrain.trainName}
+          onClose={() => {
+            setSelectedLiveTrain(null);
+            // Clean URL query param on modal close
+            try {
+              const url = new URL(window.location.href);
+              url.searchParams.delete('trainNo');
+              window.history.replaceState(null, '', url.toString());
+            } catch (e) {}
+          }}
+        />
+      )}
+
       <Footer />
     </div>
   );
