@@ -66,9 +66,10 @@ export async function searchLiveTrainsConfirmTkt(
   date: string
 ): Promise<TrainLeg[]> {
   let formattedDate = date;
-  if (date.includes('-') && date.split('-')[0].length === 4) {
-    const [year, month, day] = date.split('-');
-    formattedDate = `${day}-${month}-${year}`;
+  if (date.includes('-') && date.split('-')[2].length === 4) {
+    // Convert DD-MM-YYYY -> YYYY-MM-DD
+    const [day, month, year] = date.split('-');
+    formattedDate = `${year}-${month}-${day}`;
   }
 
   const apiUrl = `https://cttrainsapi.confirmtkt.com/api/v1/trains/search?sourceStationCode=${from}&destinationStationCode=${to}&journeyDate=${formattedDate}&querysource=ct-web`;
@@ -103,9 +104,10 @@ export async function searchLiveTrainsConfirmTkt(
     const classes: ClassAvailability[] = [];
     const cache = t.avaiblityCache || t.availabilityCache || {};
     
-    if (Object.keys(cache).length > 0) {
-      for (const cls of Object.keys(cache)) {
-        const info = cache[cls];
+    const processCacheObj = (cObj: any, isTatkal = false) => {
+      if (!cObj) return;
+      for (const cls of Object.keys(cObj)) {
+        const info = cObj[cls];
         if (info && info.fare) {
           let availability: any = 'UNKNOWN';
           let availableSeats = undefined;
@@ -127,7 +129,7 @@ export async function searchLiveTrainsConfirmTkt(
           }
 
           classes.push({
-            classType: cls as ClassType,
+            classType: (isTatkal ? `${cls} (Tatkal)` : cls) as ClassType,
             availability: availability,
             availableSeats: availableSeats,
             waitlistNumber: waitlistNumber,
@@ -139,7 +141,10 @@ export async function searchLiveTrainsConfirmTkt(
           });
         }
       }
-    }
+    };
+
+    processCacheObj(cache, false);
+    processCacheObj(t.availabilityCacheTatkal, true);
     
     if (classes.length === 0) {
       const fallbackCls = t.avlClasses || ['SL', '3A', '2A', '1A'];
