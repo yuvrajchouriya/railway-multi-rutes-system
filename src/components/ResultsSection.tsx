@@ -55,7 +55,6 @@ export default function ResultsSection({
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
-  // Scroll to active date when it changes
   useEffect(() => {
     if (scrollContainerRef.current) {
       const activeBtn = scrollContainerRef.current.querySelector('.date-btn-active');
@@ -64,6 +63,12 @@ export default function ResultsSection({
       }
     }
   }, [date]);
+  
+  // Clear cached fares when searching for a different route
+  useEffect(() => {
+    setGlobalFaresCache({});
+    setFetchingLegs(new Set());
+  }, [from, to, date]);
   
   const formatDateForApi = (d: Date) => {
     const yyyy = d.getFullYear();

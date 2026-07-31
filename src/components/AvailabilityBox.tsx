@@ -63,9 +63,9 @@ export default function AvailabilityBox({ cls }: Props) {
     <div className={`rounded-xl p-3 min-w-[100px] flex flex-col gap-1 cursor-pointer hover:scale-105 transition-transform ${boxClass}`}>
       {/* Class name + Fare */}
       <div className="flex items-center justify-between">
-        <span className="text-sm font-bold text-gray-800">{cls.classType}</span>
+        <span className="text-sm font-bold text-white">{cls.classType}</span>
         {cls.fare > 0 && (
-          <span className="text-xs font-semibold text-gray-600">₹{cls.fare}</span>
+          <span className="text-xs font-semibold text-gray-300">₹{cls.fare}</span>
         )}
       </div>
 
