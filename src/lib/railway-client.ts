@@ -143,24 +143,23 @@ export async function searchLiveTrainsConfirmTkt(
       }
     };
 
-    processCacheObj(cache, false);
-    processCacheObj(t.availabilityCacheTatkal, true);
-    
-    if (classes.length === 0) {
-      const fallbackCls = t.avlClasses || ['SL', '3A', '2A', '1A'];
-      for (const cls of fallbackCls) {
-        classes.push({
-          classType: cls as ClassType,
-          availability: 'UNKNOWN',
-          availableSeats: undefined,
-          waitlistNumber: undefined,
-          fare: 0,
-          confirmProbabilityPercent: 0,
-          confirmProbability: 'MEDIUM',
-          statusText: 'Not Available',
-          nextDatesAvailability: []
-        });
+    const isTatkalAllowed = (() => {
+      try {
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const jDate = new Date(date);
+        jDate.setHours(0,0,0,0);
+        const diffMs = jDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+        return diffDays <= 1; // Only allow Tatkal if journey date is today or tomorrow
+      } catch (e) {
+        return false;
       }
+    })();
+
+    processCacheObj(cache, false);
+    if (isTatkalAllowed) {
+      processCacheObj(t.availabilityCacheTatkal, true);
     }
 
     return {

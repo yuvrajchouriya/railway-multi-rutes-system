@@ -121,6 +121,20 @@ export async function GET(request: Request) {
     const allFareInserts: any[] = [];
     const bulkDataMap: Record<string, any> = {};
 
+    const isTatkalAllowed = (() => {
+      try {
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const jDate = new Date(formattedDateForDB);
+        jDate.setHours(0,0,0,0);
+        const diffMs = jDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+        return diffDays <= 1; // Only allow Tatkal if journey date is today or tomorrow
+      } catch (e) {
+        return false;
+      }
+    })();
+
     if (targetTrain) {
       requestedTrainData = targetTrain;
       const cache = targetTrain.avaiblityCache || targetTrain.availabilityCache || {};
@@ -135,16 +149,18 @@ export async function GET(request: Request) {
           });
         }
       }
-      const tatkal = targetTrain.availabilityCacheTatkal || {};
-      for (const cls of Object.keys(tatkal)) {
-        const info = tatkal[cls];
-        if (info && info.fare) {
-          requestedClasses.push({
-            classType: cls,
-            quota: 'TQ',
-            fare: parseInt(info.fare || "0", 10),
-            status: info.availabilityDisplayName || info.availability || 'UNKNOWN'
-          });
+      if (isTatkalAllowed) {
+        const tatkal = targetTrain.availabilityCacheTatkal || {};
+        for (const cls of Object.keys(tatkal)) {
+          const info = tatkal[cls];
+          if (info && info.fare) {
+            requestedClasses.push({
+              classType: cls,
+              quota: 'TQ',
+              fare: parseInt(info.fare || "0", 10),
+              status: info.availabilityDisplayName || info.availability || 'UNKNOWN'
+            });
+          }
         }
       }
     }
@@ -167,17 +183,19 @@ export async function GET(request: Request) {
         }
       }
 
-      const tatkalCache = t.availabilityCacheTatkal || {};
-      for (const cls of Object.keys(tatkalCache)) {
-        const info = tatkalCache[cls];
+      if (isTatkalAllowed) {
+        const tatkalCache = t.availabilityCacheTatkal || {};
+        for (const cls of Object.keys(tatkalCache)) {
+          const info = tatkalCache[cls];
 
-        if (info && info.fare) {
-          tClasses.push({
-            classType: cls,
-            quota: 'TQ',
-            fare: parseInt(info.fare || "0", 10),
-            status: info.availabilityDisplayName || info.availability || 'UNKNOWN'
-          });
+          if (info && info.fare) {
+            tClasses.push({
+              classType: cls,
+              quota: 'TQ',
+              fare: parseInt(info.fare || "0", 10),
+              status: info.availabilityDisplayName || info.availability || 'UNKNOWN'
+            });
+          }
         }
       }
 
