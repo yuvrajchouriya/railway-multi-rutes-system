@@ -8,7 +8,7 @@ import LiveTrainModal from './LiveTrainModal';
 import {
   ChevronDown, ChevronUp, Clock, Utensils,
   Train, ArrowRight, ExternalLink, Star,
-  Check, X, RefreshCw, Navigation, Heart
+  Check, X, RefreshCw, Navigation, Heart, Share2
 } from 'lucide-react';
 
 interface Props { 
@@ -911,6 +911,28 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
                     ? 'text-pink-500 fill-pink-500 shadow-[0_0_12px_rgba(236,72,153,0.8)]'
                     : 'text-gray-400 hover:text-pink-400'
                 }`} />
+              </button>
+
+              <button
+                onClick={() => {
+                  try {
+                    const shareUrl = `${window.location.origin}/?from=${firstLeg.fromStation.code}&to=${lastLeg.toStation.code}&date=${firstLeg.journeyDate}`;
+                    if (navigator.share) {
+                      navigator.share({
+                        title: `RailSathi Route: ${firstLeg.fromStation.name} to ${lastLeg.toStation.name}`,
+                        text: `Check train route from ${firstLeg.fromStation.name} (${firstLeg.fromStation.code}) to ${lastLeg.toStation.name} (${lastLeg.toStation.code})`,
+                        url: shareUrl
+                      });
+                    } else {
+                      navigator.clipboard.writeText(shareUrl);
+                      alert('Route share link copied to clipboard!');
+                    }
+                  } catch (e) {}
+                }}
+                className="w-10 h-10 rounded-xl bg-[#111A2D] hover:bg-[#1A2844] border border-[#3A506B] text-cyan-400 hover:text-cyan-300 transition-all active:scale-95 flex items-center justify-center shadow"
+                title="Share Route Deep Link"
+              >
+                <Share2 className="w-4.5 h-4.5" />
               </button>
             </div>
           </div>

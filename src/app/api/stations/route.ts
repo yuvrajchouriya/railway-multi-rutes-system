@@ -27,7 +27,10 @@ function normalize(str: string) {
   return str.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-const ALL_STATIONS = stations.filter(s => s.code !== 'JBPN').map(s => {
+// Exclude minor cabin/bypass stations that pollute city autocomplete search results
+const EXCLUDED_CABIN_CODES = new Set(['NGPB', 'NGPD', 'CWAX', 'BPLB']);
+
+const ALL_STATIONS = stations.filter(s => s.code !== 'JBPN' && !EXCLUDED_CABIN_CODES.has(s.code)).map(s => {
   let cleanName = s.name.replace(/^\d+[\s]+/, '');
   cleanName = cleanName.replace(/\(cr\)|\(se\)|\(nr\)|\(wr\)|\(sr\)|\(er\)|\(ncr\)|\(nwr\)|\(secr\)|\(swr\)|\(wcr\)|\(ecr\)|\(nfr\)|\(scr\)|\(ecor\)/gi, '').trim();
   return {

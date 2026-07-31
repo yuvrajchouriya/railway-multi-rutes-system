@@ -51,6 +51,24 @@ export default function Home() {
     } catch (e) {}
   };
 
+  // ── Deep Link & Query Parameter Syncing ─────────────────────────────────
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const urlFrom = params.get('from');
+    const urlTo = params.get('to');
+    const urlDate = params.get('date');
+    const urlTrainNo = params.get('trainNo');
+
+    if (urlTrainNo) {
+      setSelectedLiveTrain({ trainNumber: urlTrainNo, trainName: `Train ${urlTrainNo}` });
+    }
+
+    if (urlFrom && urlTo && urlDate) {
+      handleSearch(urlFrom, urlTo, urlDate);
+    }
+  }, []);
+
   // ── Mobile Single Back Navigation Fix (Page Level) ─────────────────────
   useEffect(() => {
     if (results !== null) {
@@ -78,6 +96,15 @@ export default function Home() {
     setSearchedTo(to);
     setSearchedDate(date);
     setResults(null); // Clear previous results
+
+    // Update browser URL query params for easy sharing
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('from', from);
+      url.searchParams.set('to', to);
+      url.searchParams.set('date', date);
+      window.history.replaceState(null, '', url.toString());
+    } catch (e) {}
 
     try {
       // Step 1: Fetch Direct Routes immediately

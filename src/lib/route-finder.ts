@@ -40,13 +40,32 @@ const CITY_GROUPS: Record<string, string[]> = {
   'JBPN': ['JBP']
 };
 
+// Automatic Station Code Aliases (maps minor bypass/cabin codes to main junctions)
+const CODE_ALIASES: Record<string, string> = {
+  'NGPB': 'NGP',
+  'NGPD': 'NGP',
+  'CWAX': 'CWA',
+  'BPLB': 'BPL',
+  'NDLSB': 'NDLS',
+  'ETB': 'ET',
+  'BSLB': 'BSL'
+};
+
+function normalizeStationCode(code: string): string {
+  const upper = (code || '').toUpperCase().trim();
+  return CODE_ALIASES[upper] || upper;
+}
+
 export async function findDirectRoutes(
   from: string,
   to: string,
   date: string
 ): Promise<Route[]> {
-  const fromStations = CITY_GROUPS[from] || [from];
-  const toStations = CITY_GROUPS[to] || [to];
+  const normFrom = normalizeStationCode(from);
+  const normTo = normalizeStationCode(to);
+
+  const fromStations = CITY_GROUPS[normFrom] || [normFrom];
+  const toStations = CITY_GROUPS[normTo] || [normTo];
 
   let allDirectTrains: TrainLeg[] = [];
   
@@ -407,6 +426,8 @@ export async function buildHubConnectingRoutes(
   date: string,
   onRouteFound?: (route: Route) => void
 ): Promise<Route[]> {
+  const normFrom = normalizeStationCode(from);
+  const normTo = normalizeStationCode(to);
   const nearbyHubs = findNearbyHubs(from);
   const routes: Route[] = [];
   const seenIds = new Set<string>();
