@@ -120,8 +120,6 @@ export async function GET(request: Request) {
       const generalCache = t.avaiblityCache || t.availabilityCache || {};
       for (const cls of Object.keys(generalCache)) {
         const info = generalCache[cls];
-        const infoDate = info?.date ? info.date.split('T')[0] : null;
-        if (infoDate && infoDate !== formattedDateForDB) continue; // Skip if cache is for wrong date
         
         if (info && info.fare) {
           tClasses.push({
@@ -136,8 +134,6 @@ export async function GET(request: Request) {
       const tatkalCache = t.availabilityCacheTatkal || {};
       for (const cls of Object.keys(tatkalCache)) {
         const info = tatkalCache[cls];
-        const infoDate = info?.date ? info.date.split('T')[0] : null;
-        if (infoDate && infoDate !== formattedDateForDB) continue; // Skip if cache is for wrong date
 
         if (info && info.fare) {
           tClasses.push({
