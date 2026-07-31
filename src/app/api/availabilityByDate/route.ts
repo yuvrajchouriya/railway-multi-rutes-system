@@ -32,27 +32,41 @@ export async function GET(request: Request) {
   if (!isValidStationCode(from) || !isValidStationCode(to)) {
     return NextResponse.json({ error: 'Invalid station code' }, { status: 400 });
   }
-  if (!isValidDate(date)) {
-    return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
-  }
-
   const controller = new AbortController();
-  const fetchTimeout = setTimeout(() => controller.abort(), 5_000);
+  const fetchTimeout = setTimeout(() => controller.abort(), 8_000);
 
   try {
-    // Build URL with validated, sanitized parameters only
-    const url = new URL('http://127.0.0.1:3001/availability/getAvailability');
-    url.searchParams.set('trainNo', trainNo);
-    url.searchParams.set('from', from);
-    url.searchParams.set('to', to);
-    url.searchParams.set('date', date);
-    url.searchParams.set('classType', 'ALL');
+    // ConfirmTkt search API with requested date
+    const ctUrl = `https://cttrainsapi.confirmtkt.com/api/v1/trains/search?sourceStationCode=${from}&destinationStationCode=${to}&journeyDate=${date}&querysource=ct-web`;
+    const res = await fetch(ctUrl, { signal: controller.signal, headers: { 'User-Agent': 'Mozilla/5.0' } });
+    
+    if (!res.ok) {
+      return NextResponse.json({ success: false, error: 'External API error' }, { status: res.status });
+    }
 
-    const res = await fetch(url.toString(), { signal: controller.signal });
-    const data = await res.json();
-    return NextResponse.json(data);
-  } catch (_) {
-    return NextResponse.json({ error: 'Failed to fetch availability' }, { status: 500 });
+    const json = await res.json();
+    const trainList = json?.data?.trainList || json?.data?.trains || [];
+    const targetTrain = trainList.find((t: any) => t.trainNumber === trainNo || t.trainNo === trainNo);
+
+    if (!targetTrain) {
+      return NextResponse.json({ success: false, error: 'Train not found' }, { status: 404 });
+    }
+
+    const cache = targetTrain.avaiblityCache || targetTrain.availabilityCache || {};
+    const classes = Object.keys(cache).map(clsKey => {
+      const item = cache[clsKey];
+      return {
+        classType: clsKey,
+        quota: item?.quota || 'GN',
+        fare: parseInt(item?.fare || '0', 10),
+        status: item?.availabilityDisplayName || item?.availability || 'UNKNOWN',
+        updatedAt: item?.cacheTime || new Date().toISOString()
+      };
+    });
+
+    return NextResponse.json({ success: true, data: classes, trainName: targetTrain.trainName });
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: e?.message || 'Failed to fetch availability' }, { status: 500 });
   } finally {
     clearTimeout(fetchTimeout);
   }
