@@ -112,10 +112,42 @@ export async function GET(request: Request) {
     let requestedClasses: any[] = [];
     let requestedTrainData: any = null;
     
+    // Trim train numbers to prevent spaces/type matching bugs
+    const targetTrainNoClean = trainNo.trim();
+    const targetTrain = trains.find((t: any) => String(t.trainNumber || t.trainNo || '').trim() === targetTrainNoClean);
+    
     const nowIso = new Date().toISOString();
     const allCacheInserts: any[] = [];
     const allFareInserts: any[] = [];
     const bulkDataMap: Record<string, any> = {};
+
+    if (targetTrain) {
+      requestedTrainData = targetTrain;
+      const cache = targetTrain.avaiblityCache || targetTrain.availabilityCache || {};
+      for (const cls of Object.keys(cache)) {
+        const info = cache[cls];
+        if (info && info.fare) {
+          requestedClasses.push({
+            classType: cls,
+            quota: 'GN',
+            fare: parseInt(info.fare || "0", 10),
+            status: info.availabilityDisplayName || info.availability || 'UNKNOWN'
+          });
+        }
+      }
+      const tatkal = targetTrain.availabilityCacheTatkal || {};
+      for (const cls of Object.keys(tatkal)) {
+        const info = tatkal[cls];
+        if (info && info.fare) {
+          requestedClasses.push({
+            classType: cls,
+            quota: 'TQ',
+            fare: parseInt(info.fare || "0", 10),
+            status: info.availabilityDisplayName || info.availability || 'UNKNOWN'
+          });
+        }
+      }
+    }
 
     // Bulk process ALL trains for caching
     for (const t of trains) {
@@ -175,13 +207,13 @@ export async function GET(request: Request) {
       });
 
       // Only return this train's data to the frontend if it's the requested train
-      if (t.trainNumber === trainNo) {
+      if (String(t.trainNumber || '').trim() === targetTrainNoClean) {
           // tClasses assigned for requested train
           requestedTrainData = t;
           requestedClasses = tClasses;
       }
 
-      bulkDataMap[t.trainNumber] = {
+      bulkDataMap[String(t.trainNumber).trim()] = {
          data: tClasses,
          originCode: t.trainOriginStationCode || null,
          originName: t.trainOriginStationName || null
@@ -233,32 +265,39 @@ export async function GET(request: Request) {
          // Skip 1A Tatkal
          if (cls === '1A' && quota === 'TQ') continue;
          
-         const exists = classes.some((c: any) => c.classType === cls && c.quota === quota);
-         if (!exists) {
-             fetchPromises.push((async () => {
-                 try {
-                   const calUrl = `https://cttrainsapi.confirmtkt.com/api/v1/availability/2monthcalendar?trainNumber=${trainNo}&sourceStationCode=${from}&destinationStationCode=${to}&trainClass=${cls}&quota=${quota}&startDate=${date}&querysource=ct-web`;
-                   const calRes = await fetch(calUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-                   const calJson = await calRes.json();
-                   const calData = calJson?.data;
-                   if (calData && calData[date]) {
-                      const info = calData[date];
-                      const fallbackFare = fallbackFares[`${quota}-${cls}`];
-                      const fare = parseInt(info.fare || calJson.fare || calData.fare || fallbackFare || "0", 10);
-                     if (fare > 0 || info.availabilityDisplayName) {
-                       classes.push({
-                         classType: cls,
-                         quota: quota,
-                         fare: fare,
-                         status: info.availabilityDisplayName || info.predictionDisplayName || 'UNKNOWN'
-                       });
-                     }
-                   }
-                 } catch (e) {
-                   console.error(`Fallback fetch failed for ${cls} ${quota}:`, e);
-                 }
-             })());
-         }
+          const exists = classes.some((c: any) => c.classType === cls && c.quota === quota && c.status !== 'NOT AVAILABLE' && c.status !== 'Not Available');
+          if (!exists) {
+              fetchPromises.push((async () => {
+                  try {
+                    let formattedDateForCal = date;
+                    if (date.includes('-') && date.split('-')[0].length === 4) {
+                      const [year, month, day] = date.split('-');
+                      formattedDateForCal = `${day}-${month}-${year}`;
+                    }
+                    const calUrl = `https://cttrainsapi.confirmtkt.com/api/v1/availability/2monthcalendar?trainNumber=${trainNo}&sourceStationCode=${from}&destinationStationCode=${to}&trainClass=${cls}&quota=${quota}&startDate=${formattedDateForCal}&querysource=ct-web`;
+                    const calRes = await fetch(calUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+                    const calJson = await calRes.json();
+                    const calData = calJson?.data;
+                    if (calData && calData[formattedDateForCal]) {
+                       const info = calData[formattedDateForCal];
+                       const fallbackFare = fallbackFares[`${quota}-${cls}`];
+                       const fare = parseInt(info.fare || calJson.fare || calData.fare || fallbackFare || "0", 10);
+                      if (fare > 0 || info.availabilityDisplayName) {
+                        // Remove the existing 'NOT AVAILABLE' entry if we are replacing it with a fresh status
+                        classes = classes.filter((c: any) => !(c.classType === cls && c.quota === quota));
+                        classes.push({
+                          classType: cls,
+                          quota: quota,
+                          fare: fare,
+                          status: info.availabilityDisplayName || info.predictionDisplayName || 'UNKNOWN'
+                        });
+                      }
+                    }
+                  } catch (e) {
+                    console.error(`Fallback fetch failed for ${cls} ${quota}:`, e);
+                  }
+              })());
+          }
       }
     }
 
