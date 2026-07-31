@@ -743,17 +743,17 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                         )}
                       </div>
 
-                      {/* 100% VISIBLE CONTINUOUS TRACK LADDER COLUMN */}
+                      {/* 100% UNBROKEN CONTINUOUS TRACK LADDER COLUMN */}
                       <div className="relative w-12 flex-shrink-0 flex items-center justify-center min-h-[64px]">
-                        {/* Track Lines Layer */}
-                        <div className="absolute top-0 bottom-0 w-5 flex justify-center pointer-events-none z-10 overflow-hidden">
+                        {/* Track Lines Layer - Seamlessly Overlaps Row Boundaries */}
+                        <div className="absolute -top-10 -bottom-10 w-5 flex justify-center pointer-events-none z-10 overflow-visible">
                           {/* Left Steel Rail */}
-                          <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-[#3B82F6] shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
+                          <div className="absolute left-0 -top-10 -bottom-10 w-[4px] bg-[#3B82F6] shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
                           {/* Right Steel Rail */}
-                          <div className="absolute right-0 top-0 bottom-0 w-[4px] bg-[#3B82F6] shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
-                          {/* Continuous Single Metal Sleepers (Ties) - Full Width Only */}
+                          <div className="absolute right-0 -top-10 -bottom-10 w-[4px] bg-[#3B82F6] shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
+                          {/* Continuous Single Metal Sleepers (Ties) */}
                           <div
-                            className="absolute left-0 right-0 top-0 bottom-0 opacity-75"
+                            className="absolute left-0 right-0 -top-10 -bottom-10 opacity-75"
                             style={{
                               backgroundImage: 'linear-gradient(to bottom, #475569 2px, transparent 2px)',
                               backgroundSize: '100% 16px',
