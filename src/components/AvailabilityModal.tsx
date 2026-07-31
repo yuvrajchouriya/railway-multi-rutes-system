@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ExternalLink, RefreshCw } from 'lucide-react';
 import { TrainLeg } from '../types/railway';
 import { apiFetch } from '@/lib/shield';
+import { ensureYYYYMMDD } from '@/lib/validators';
 
 const fmtDuration = (m: number) => `${Math.floor(m / 60)}h ${m % 60}m`;
 
@@ -30,11 +31,7 @@ export default function AvailabilityModal({ leg, onClose, liveClasses }: Availab
   // Secure status fetch function
   const fetchAvailability = (forceRefresh = false) => {
     setLoading(true);
-    let apiDate = leg.journeyDate;
-    if (apiDate.includes('-') && apiDate.split('-')[0].length === 4) {
-       const [year, month, day] = apiDate.split('-');
-       apiDate = `${day}-${month}-${year}`;
-    }
+    const apiDate = ensureYYYYMMDD(leg.journeyDate);
 
     const timestamp = Date.now().toString();
     const clientSecret = "rls_internal_9x2k7m4p8q";

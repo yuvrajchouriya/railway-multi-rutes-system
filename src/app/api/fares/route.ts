@@ -205,8 +205,7 @@ export async function GET(request: Request) {
     let fallbackFares: any = {};
     if (classes.length === 0) {
       try {
-        const todayDateStr = new Date().toLocaleDateString('en-GB', {timeZone: 'Asia/Kolkata'}).replace(/\//g, '-');
-        const altApiUrl = `https://cttrainsapi.confirmtkt.com/api/v1/trains/search?sourceStationCode=${from}&destinationStationCode=${to}&journeyDate=${todayDateStr}&querysource=ct-web`;
+        const altApiUrl = `https://cttrainsapi.confirmtkt.com/api/v1/trains/search?sourceStationCode=${from}&destinationStationCode=${to}&journeyDate=${formattedDateForCT}&querysource=ct-web`;
         const altRes = await fetch(altApiUrl);
         const altJson = await altRes.json();
         const altTrains = altJson?.data?.trainList || altJson?.data?.trains || [];

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Route, RouteTag } from '@/types/railway';
 import { apiFetch } from '@/lib/shield';
+import { ensureYYYYMMDD } from '@/lib/validators';
 import RouteCard from './RouteCard';
 import { Train, SlidersHorizontal } from 'lucide-react';
 
@@ -92,11 +93,7 @@ export default function ResultsSection({
       if (!isAlreadyCached) {
         setFetchingLegs(prev => new Set(prev).add(legKey));
 
-        let apiDate = leg.journeyDate;
-        if (apiDate.includes('-') && apiDate.split('-')[0].length === 4) {
-          const parts = apiDate.split('-');
-          apiDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-        }
+        const apiDate = ensureYYYYMMDD(leg.journeyDate);
 
         try {
           const res = await apiFetch(`/api/fares?trainNo=${leg.trainNumber}&from=${leg.fromStation.code}&to=${leg.toStation.code}&date=${apiDate}`);

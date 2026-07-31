@@ -37,6 +37,28 @@ export function isValidDate(date: string | null | undefined): boolean {
   }
 }
 
+/** Converts any date string (DD-MM-YYYY or YYYY-MM-DD) to standard ISO YYYY-MM-DD */
+export function ensureYYYYMMDD(dateStr: string | null | undefined): string {
+  if (!dateStr) return '';
+  const trimmed = dateStr.trim();
+  if (trimmed.includes('-') && trimmed.split('-')[2]?.length === 4) {
+    const [day, month, year] = trimmed.split('-');
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+  return trimmed;
+}
+
+/** Converts any date string to DD-MM-YYYY */
+export function ensureDDMMYYYY(dateStr: string | null | undefined): string {
+  if (!dateStr) return '';
+  const trimmed = dateStr.trim();
+  if (trimmed.includes('-') && trimmed.split('-')[0]?.length === 4) {
+    const [year, month, day] = trimmed.split('-');
+    return `${day.padStart(2, '0')}-${month.padStart(2, '0')}-${year}`;
+  }
+  return trimmed;
+}
+
 /** PNR: exactly 10 digits */
 export function isValidPnr(pnr: string | null | undefined): boolean {
   if (!pnr) return false;

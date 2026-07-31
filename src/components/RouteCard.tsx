@@ -6,6 +6,7 @@ import AvailabilityBox from './AvailabilityBox';
 import AvailabilityModal from './AvailabilityModal';
 import LiveTrainModal from './LiveTrainModal';
 import { apiFetch } from '@/lib/shield';
+import { ensureYYYYMMDD } from '@/lib/validators';
 import {
   ChevronDown, ChevronUp, Clock, Utensils,
   Train, ArrowRight, ExternalLink, Star,
@@ -572,11 +573,7 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
       const fetchPromises = route.legs.map(async (leg) => {
         try {
           const legKey = `${leg.trainNumber}|${leg.fromStation.code}|${leg.toStation.code}|${leg.journeyDate}`;
-          let apiDate = leg.journeyDate;
-          if (apiDate.includes('-') && apiDate.split('-')[0].length === 4) {
-             const parts = apiDate.split('-');
-             apiDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-          }
+          const apiDate = ensureYYYYMMDD(leg.journeyDate);
           
           const url = `/api/fares?trainNo=${leg.trainNumber}&from=${leg.fromStation.code}&to=${leg.toStation.code}&date=${apiDate}&forceRefresh=true`;
           const res = await apiFetch(url);
