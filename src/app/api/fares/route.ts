@@ -29,6 +29,8 @@ export async function GET(request: Request) {
   let date = searchParams.get('date');
   const forceRefresh = searchParams.get('forceRefresh') === 'true';
 
+  console.log(`\n\n💰 [API MONITOR] FARES HIT: train=${trainNo}, from=${from}, to=${to}, date=${date}, refresh=${forceRefresh}\n\n`);
+
   // ── Input Validation ─────────────────────────────────────────────
   if (!trainNo || !from || !to || !date) {
     return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });

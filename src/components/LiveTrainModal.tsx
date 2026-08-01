@@ -567,40 +567,6 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
         {/* ── Top Feature Action Pills Bar (Today, Speedometer, Alarm, Coach, Share) ── */}
         <div className="bg-[#121927] px-4 py-2 border-b border-[#24334B] flex items-center gap-2 overflow-x-auto scrollbar-hide relative z-20">
-          <div className="relative">
-            <button
-              onClick={() => setShowDateDropdown(!showDateDropdown)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#24334B] hover:bg-[#2F4262] text-xs font-bold text-gray-200 border border-[#34486A] transition-all flex-shrink-0"
-            >
-              <Calendar className="w-3.5 h-3.5 text-blue-400" />
-              <span>{getDayLabel()}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-            </button>
-
-            {showDateDropdown && (
-              <div className="absolute top-full left-0 mt-1 bg-[#1C273C] border border-[#2B3D5E] rounded-xl shadow-xl py-1 w-32 z-30">
-                {[
-                  { label: 'Yesterday', offset: -1 },
-                  { label: 'Today', offset: 0 },
-                  { label: 'Tomorrow', offset: 1 },
-                ].map(opt => (
-                  <button
-                    key={opt.offset}
-                    onClick={() => {
-                      setSelectedDayOffset(opt.offset);
-                      setShowDateDropdown(false);
-                    }}
-                    className={`w-full text-left px-3 py-1.5 text-xs font-bold flex items-center justify-between ${
-                      selectedDayOffset === opt.offset ? 'bg-blue-600/30 text-blue-400' : 'hover:bg-white/5 text-gray-300'
-                    }`}
-                  >
-                    <span>{opt.label}</span>
-                    {selectedDayOffset === opt.offset && <Check className="w-3.5 h-3.5" />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
 
           {/* ⚡ SPEEDOMETER BUTTON */}
           <button

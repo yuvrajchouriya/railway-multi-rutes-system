@@ -23,6 +23,8 @@ export async function GET(request: NextRequest) {
   const date = searchParams.get('date');
   const type = searchParams.get('type');
 
+  console.log(`\n\n🔍 [API MONITOR] SEARCH HIT: from=${from}, to=${to}, date=${date}, type=${type}\n\n`);
+
   // ── Input Validation ─────────────────────────────────────────────
   if (!from || !to || !date) {
     return NextResponse.json({ error: 'Missing from, to, or date parameters' }, { status: 400 });
