@@ -5,7 +5,7 @@ import { Route, TrainLeg, DatedClassAvailability } from '@/types/railway';
 import AvailabilityBox from './AvailabilityBox';
 import AvailabilityModal from './AvailabilityModal';
 import LiveTrainModal from './LiveTrainModal';
-import { apiFetch } from '@/lib/shield';
+import { apiFetch, apiFetchSecure } from '@/lib/shield';
 import { ensureYYYYMMDD } from '@/lib/validators';
 import {
   ChevronDown, ChevronUp, Clock, Utensils,
@@ -589,8 +589,13 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
           const legKey = `${leg.trainNumber}|${leg.fromStation.code}|${leg.toStation.code}|${leg.journeyDate}`;
           const apiDate = ensureYYYYMMDD(leg.journeyDate);
           
-          const url = `/api/fares?trainNo=${leg.trainNumber}&from=${leg.fromStation.code}&to=${leg.toStation.code}&date=${apiDate}&forceRefresh=true`;
-          const res = await apiFetch(url);
+          const res = await apiFetchSecure('/api/fares', {
+            trainNo: leg.trainNumber,
+            from: leg.fromStation.code,
+            to: leg.toStation.code,
+            date: apiDate,
+            forceRefresh: true
+          });
           if (res.ok) {
              const data = await res.json();
              if (data.success && data.data) {

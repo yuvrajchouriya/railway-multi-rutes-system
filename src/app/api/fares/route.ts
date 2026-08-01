@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limiter';
 import { isValidTrainNumber, isValidStationCode, isValidDate } from '@/lib/validators';
 import { verifyApiKey } from '@/lib/shield';
+import { decryptPayload } from '@/lib/encryption';
+import { sanitizeResponse } from '@/lib/sanitizer';
 
 // Initialize a service role client to bypass RLS for server-side insertions
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -23,11 +25,25 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const trainNo = searchParams.get('trainNo');
-  const from = searchParams.get('from')?.toUpperCase();
-  const to = searchParams.get('to')?.toUpperCase();
-  let date = searchParams.get('date');
-  const forceRefresh = searchParams.get('forceRefresh') === 'true';
+  const encryptedPayload = searchParams.get('payload');
+  
+  let trainNo, from, to, date, forceRefresh;
+
+  if (encryptedPayload) {
+    const data = decryptPayload(encryptedPayload);
+    if (!data) return NextResponse.json({ error: 'Invalid Payload' }, { status: 400 });
+    trainNo = data.trainNo;
+    from = data.from?.toUpperCase();
+    to = data.to?.toUpperCase();
+    date = data.date;
+    forceRefresh = data.forceRefresh === true || data.forceRefresh === 'true';
+  } else {
+    trainNo = searchParams.get('trainNo');
+    from = searchParams.get('from')?.toUpperCase();
+    to = searchParams.get('to')?.toUpperCase();
+    date = searchParams.get('date');
+    forceRefresh = searchParams.get('forceRefresh') === 'true';
+  }
 
   console.log(`\n\n💰 [API MONITOR] FARES HIT: train=${trainNo}, from=${from}, to=${to}, date=${date}, refresh=${forceRefresh}\n\n`);
 
@@ -94,7 +110,7 @@ export async function GET(request: Request) {
                         updatedAt: c.updated_at
                     };
                 });
-                return NextResponse.json({ success: true, data: classes, source: 'cache', updatedAt: classes[0].updatedAt });
+                return NextResponse.json(sanitizeResponse({ success: true, data: classes, source: 'cache', updatedAt: classes[0].updatedAt }));
             }
         }
     }
@@ -500,14 +516,14 @@ export async function GET(request: Request) {
     // Attach updated_at to classes so frontend knows it's fresh
     const finalClasses = classes.map((c: any) => ({...c, updatedAt: nowIso}));
 
-    return NextResponse.json({ 
+    return NextResponse.json(sanitizeResponse({ 
         success: true, 
         data: finalClasses, 
         originCode: trainData?.trainOriginStationCode || null,
         originName: trainData?.trainOriginStationName || null,
         updatedAt: nowIso,
         bulkData: bulkDataMap
-    });
+    }));
 
   } catch (_) {
     return NextResponse.json({ error: 'Failed to fetch availability data' }, { status: 500 });

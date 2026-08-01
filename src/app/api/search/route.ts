@@ -4,6 +4,8 @@ import { createClient } from '@supabase/supabase-js';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limiter';
 import { isValidStationCode, isValidDate } from '@/lib/validators';
 import { verifyApiKey } from '@/lib/shield';
+import { decryptPayload } from '@/lib/encryption';
+import { sanitizeResponse } from '@/lib/sanitizer';
 
 export async function GET(request: NextRequest) {
   // ── API Shield: Block all requests not from our app ─────────────────────
@@ -18,10 +20,24 @@ export async function GET(request: NextRequest) {
   }
 
   const searchParams = request.nextUrl.searchParams;
-  const from = searchParams.get('from')?.toUpperCase();
-  const to = searchParams.get('to')?.toUpperCase();
-  const date = searchParams.get('date');
-  const type = searchParams.get('type');
+  const encryptedPayload = searchParams.get('payload');
+  
+  let from, to, date, type;
+
+  if (encryptedPayload) {
+    const data = decryptPayload(encryptedPayload);
+    if (!data) return NextResponse.json({ error: 'Invalid Payload' }, { status: 400 });
+    from = data.from?.toUpperCase();
+    to = data.to?.toUpperCase();
+    date = data.date;
+    type = data.type;
+  } else {
+    // Fallback for development if needed, but in production we can enforce payload only
+    from = searchParams.get('from')?.toUpperCase();
+    to = searchParams.get('to')?.toUpperCase();
+    date = searchParams.get('date');
+    type = searchParams.get('type');
+  }
 
   console.log(`\n\n🔍 [API MONITOR] SEARCH HIT: from=${from}, to=${to}, date=${date}, type=${type}\n\n`);
 
@@ -55,7 +71,7 @@ export async function GET(request: NextRequest) {
         .single();
 
       if (!cacheErr && cacheData && Array.isArray(cacheData.routes_json) && cacheData.routes_json.length > 0) {
-        return NextResponse.json({ directRoutes: cacheData.routes_json, source: 'cache' });
+        return NextResponse.json(sanitizeResponse({ directRoutes: cacheData.routes_json, source: 'cache' }));
       }
 
       const directRoutes = await findDirectRoutes(from, to, date);
@@ -70,7 +86,7 @@ export async function GET(request: NextRequest) {
         }, { onConflict: 'from_station,to_station,journey_date,type' }).then(() => {});
       }
 
-      return NextResponse.json({ directRoutes });
+      return NextResponse.json(sanitizeResponse({ directRoutes }));
 
     } else if (type === 'connecting') {
       const { data: cacheData, error: cacheErr } = await supabase
@@ -153,7 +169,7 @@ export async function GET(request: NextRequest) {
       if (error) console.error('Failed to log search history', error);
     });
 
-    return NextResponse.json(results);
+    return NextResponse.json(sanitizeResponse(results));
   } catch (error) {
     console.error('Error in search API:', error);
     return NextResponse.json({ error: 'Failed to find routes' }, { status: 500 });

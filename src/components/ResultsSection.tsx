@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Route, RouteTag } from '@/types/railway';
-import { apiFetch } from '@/lib/shield';
+import { apiFetch, apiFetchSecure } from '@/lib/shield';
 import { ensureYYYYMMDD } from '@/lib/validators';
 import RouteCard from './RouteCard';
 import { Train, SlidersHorizontal } from 'lucide-react';
@@ -106,7 +106,12 @@ export default function ResultsSection({
         const apiDate = ensureYYYYMMDD(leg.journeyDate);
 
         try {
-          const res = await apiFetch(`/api/fares?trainNo=${leg.trainNumber}&from=${leg.fromStation.code}&to=${leg.toStation.code}&date=${apiDate}`);
+          const res = await apiFetchSecure('/api/fares', {
+            trainNo: leg.trainNumber,
+            from: leg.fromStation.code,
+            to: leg.toStation.code,
+            date: apiDate
+          });
           if (res.ok) {
             const data = await res.json();
             if (data.success && data.data) {

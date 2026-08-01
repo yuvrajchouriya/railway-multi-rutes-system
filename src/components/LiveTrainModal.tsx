@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, RefreshCw, Train, MapPin, AlertCircle, Calendar, Bell, Share2, ChevronDown, Check, MessageSquare, ChevronUp, Heart, Volume2, VolumeX, CheckCircle, Navigation, Gauge, Zap, Compass, ShieldAlert, WifiOff } from 'lucide-react';
 import ProximityNotificationToast from './ProximityNotificationToast';
-import { apiFetch } from '@/lib/shield';
+import { apiFetch, apiFetchSecure } from '@/lib/shield';
 
 interface LiveTrainModalProps {
   trainNumber: string;
@@ -236,7 +236,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     setIsOfflineMode(false);
 
     try {
-      const res = await apiFetch(`/api/live-status?trainNo=${trainNumber}`);
+      const res = await apiFetchSecure('/api/live-status', { trainNo: trainNumber, forceRefresh: false });
       const json = await res.json();
 
       if (!res.ok || json.error) {

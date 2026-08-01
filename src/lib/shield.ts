@@ -1,3 +1,5 @@
+import { encryptPayload } from './encryption';
+
 /**
  * RailSathi API Shield
  * 
@@ -85,9 +87,18 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
 
   headers.set('x-railsathi-token', token);
   headers.set('x-railsathi-time', timestamp);
+  headers.set('x-railsathi-client', 'web'); // Or 'app' if Capacitor
 
   return fetch(url, {
     ...options,
     headers,
   });
+}
+
+// ── CLIENT-SIDE: Encrypted fetch wrapper ──────────────────────────────────
+// Sends parameters as encrypted payload to prevent scraping
+export async function apiFetchSecure(endpoint: string, params: Record<string, any>): Promise<Response> {
+  const encryptedPayload = encryptPayload(params);
+  const url = `${endpoint}?payload=${encryptedPayload}`;
+  return apiFetch(url);
 }

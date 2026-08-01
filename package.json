@@ -11,9 +11,13 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@supabase/ssr": "^0.12.1",
     "@supabase/supabase-js": "^2.110.3",
+    "@types/crypto-js": "^4.2.2",
+    "crypto-js": "^4.2.0",
     "date-fns": "^4.4.0",
     "fuse.js": "^7.5.0",
     "indian-railway-station-codes": "^1.0.1",
@@ -23,6 +27,7 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limiter';
 import { isValidTrainNumber } from '@/lib/validators';
 import { verifyApiKey } from '@/lib/shield';
+import { decryptPayload } from '@/lib/encryption';
+import { sanitizeResponse } from '@/lib/sanitizer';
 
 // Server-side Speed Engine for Live Train Running Status (RailRadar Direct + 2-Min Speed Cache)
 const liveStatusCache = new Map<string, { data: any; timestamp: number }>();
@@ -21,8 +23,19 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const trainNo = searchParams.get('trainNo');
-  const forceRefresh = searchParams.get('forceRefresh') === 'true';
+  const encryptedPayload = searchParams.get('payload');
+  
+  let trainNo, forceRefresh;
+
+  if (encryptedPayload) {
+    const data = decryptPayload(encryptedPayload);
+    if (!data) return NextResponse.json({ error: 'Invalid Payload' }, { status: 400 });
+    trainNo = data.trainNo;
+    forceRefresh = data.forceRefresh === true || data.forceRefresh === 'true';
+  } else {
+    trainNo = searchParams.get('trainNo');
+    forceRefresh = searchParams.get('forceRefresh') === 'true';
+  }
 
   // ── Input Validation ─────────────────────────────────────────────
   if (!trainNo || !isValidTrainNumber(trainNo)) {
@@ -33,7 +46,7 @@ export async function GET(request: Request) {
   if (forceRefresh && !checkRateLimit(`${ip}:force-refresh:${trainNo}`, 1, CACHE_TTL_MS)) {
     // Return cached data silently if force-refresh is abused
     const cached = liveStatusCache.get(trainNo);
-    if (cached) return NextResponse.json({ success: true, data: cached.data, source: 'cache' });
+    if (cached) return NextResponse.json(sanitizeResponse({ success: true, data: cached.data, source: 'cache' }));
   }
 
   // ── Check 2-minute Speed Cache ────────────────────────────────────
@@ -41,7 +54,7 @@ export async function GET(request: Request) {
   if (!forceRefresh && liveStatusCache.has(trainNo)) {
     const cached = liveStatusCache.get(trainNo)!;
     if (now - cached.timestamp < CACHE_TTL_MS) {
-      return NextResponse.json({ success: true, data: cached.data, source: 'cache' });
+      return NextResponse.json(sanitizeResponse({ success: true, data: cached.data, source: 'cache' }));
     }
   }
 
@@ -95,7 +108,7 @@ export async function GET(request: Request) {
           };
 
           liveStatusCache.set(trainNo, { data: resultData, timestamp: now });
-          return NextResponse.json({ success: true, data: resultData, source: 'railradar' });
+          return NextResponse.json(sanitizeResponse({ success: true, data: resultData, source: 'railradar' }));
         }
       }
     } catch (_) {}
@@ -154,7 +167,7 @@ export async function GET(request: Request) {
 
       if (parsedData && parsedData.route && parsedData.route.length > 0) {
         liveStatusCache.set(trainNo, { data: parsedData, timestamp: now });
-        return NextResponse.json({ success: true, data: parsedData, source: 'ntes' });
+        return NextResponse.json(sanitizeResponse({ success: true, data: parsedData, source: 'ntes' }));
       }
     } catch (_) {}
 
