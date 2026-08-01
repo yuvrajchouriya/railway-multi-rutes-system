@@ -230,9 +230,9 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
   };
 
   // ── 📱 OFFLINE TIMETABLE CACHING & LOAD ──────────────────────────────────
-  const fetchLiveStatus = async () => {
-    setLoading(true);
-    setError(null);
+  const fetchLiveStatus = async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
+    if (!isSilent) setError(null);
     setIsOfflineMode(false);
 
     try {
@@ -254,15 +254,8 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
         setTargetAlarmStation(lastStn.stationCode || lastStn.stationName);
       }
 
-      if (json.data && json.data.route) {
-        let cSeq = json.data.currentLocation?.sequence;
-        if (!cSeq && json.data.currentLocation?.stationCode) {
-          const match = json.data.route.find((s: any) => s.stationCode === json.data.currentLocation.stationCode);
-          if (match) cSeq = match.sequence;
-        }
-        if (!cSeq) cSeq = 1;
-
-        // Keep all sub-station sections collapsed by default.
+      if (json.data && json.data.route && !isSilent) {
+        // Keep all sub-station sections collapsed by default (only reset if not silent poll)
         setExpandedSections(new Set());
       }
     } catch (err: any) {
@@ -272,14 +265,14 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
           const cachedJson = JSON.parse(cached);
           setData(cachedJson);
           setIsOfflineMode(true);
-          setLoading(false);
+          if (!isSilent) setLoading(false);
           return;
         }
       } catch (e) {}
 
-      setError(err.message || 'Failed to load live status');
+      if (!isSilent) setError(err.message || 'Failed to load live status');
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   };
 
@@ -323,6 +316,24 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
       alarmIntervalRef.current = null;
     }
   };
+
+  // Cleanup alarm on unmount
+  useEffect(() => {
+    return () => {
+      if (alarmIntervalRef.current) {
+        clearInterval(alarmIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Silent Background Polling for Alarm (every 2 minutes)
+  useEffect(() => {
+    if (!isAlarmActive) return;
+    const intervalId = setInterval(() => {
+      fetchLiveStatus(true); // silent fetch
+    }, 120000);
+    return () => clearInterval(intervalId);
+  }, [isAlarmActive, trainNumber]);
 
   useEffect(() => {
     if (!isAlarmActive || !targetAlarmStation || !data?.route) return;
