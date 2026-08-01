@@ -17,7 +17,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install Dependencies
@@ -31,6 +31,10 @@ jobs:
 
       - name: Build Next.js App
         run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: 'https://dummy.supabase.co'
+          SUPABASE_SERVICE_ROLE_KEY: 'dummy-key'
+          API_SECRET_KEY: 'dummy-secret'
 
       - name: Sync Capacitor
         run: |
@@ -39,11 +43,15 @@ jobs:
 
       - name: Build APK (Debug)
         working-directory: ./android
-        run: ./gradlew assembleDebug
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
 
       - name: Build AAB (Release)
         working-directory: ./android
-        run: ./gradlew bundleRelease
+        run: |
+          chmod +x ./gradlew
+          ./gradlew bundleRelease
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
