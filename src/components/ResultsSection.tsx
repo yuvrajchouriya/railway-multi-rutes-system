@@ -107,16 +107,22 @@ export default function ResultsSection({
             if (data.success && data.data) {
               setGlobalFaresCache(prev => {
                 const next = { ...prev };
-                next[legKey] = { data: data.data, updatedAt: data.updatedAt, originCode: data.originCode, originName: data.originName };
+                const syncKey = `${leg.trainNumber}|${leg.journeyDate}`;
+                const cacheObj = { data: data.data, updatedAt: data.updatedAt, originCode: data.originCode, originName: data.originName };
+                next[legKey] = cacheObj;
+                next[syncKey] = cacheObj;
                 if (data.bulkData) {
                   for (const tNo of Object.keys(data.bulkData)) {
                     const bulkLegKey = `${tNo}|${leg.fromStation.code}|${leg.toStation.code}|${leg.journeyDate}`;
-                    next[bulkLegKey] = {
+                    const bulkSyncKey = `${tNo}|${leg.journeyDate}`;
+                    const bulkCacheObj = {
                       data: data.bulkData[tNo].data,
                       updatedAt: data.updatedAt,
                       originCode: data.bulkData[tNo].originCode,
                       originName: data.bulkData[tNo].originName
                     };
+                    next[bulkLegKey] = bulkCacheObj;
+                    next[bulkSyncKey] = bulkCacheObj;
                   }
                 }
                 return next;

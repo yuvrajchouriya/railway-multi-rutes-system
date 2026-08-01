@@ -429,7 +429,8 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
 
   for (const leg of route.legs) {
     const legKey = `${leg.trainNumber}|${leg.fromStation.code}|${leg.toStation.code}|${leg.journeyDate}`;
-    const cacheEntry = globalFaresCache[legKey];
+    const syncKey = `${leg.trainNumber}|${leg.journeyDate}`;
+    const cacheEntry = globalFaresCache[legKey] || globalFaresCache[syncKey];
     
     if (fetchingLegs.has(legKey)) {
        isAnyFetching = true;
@@ -452,7 +453,7 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
        if (cacheEntry.updatedAt) latestUpdatedAt = cacheEntry.updatedAt;
        if (cacheEntry.originCode) originCode = cacheEntry.originCode;
        if (cacheEntry.originName) originName = cacheEntry.originName;
-    } else if (leg.classes && leg.classes.length > 0 && leg.classes.some(c => c.fare > 0)) {
+    } else if (leg.classes && leg.classes.length > 0) {
        isAllMissing = false;
        hasAnyData = true;
        liveClassesData[leg.trainNumber] = getValidClasses(leg.classes.map(c => ({
@@ -570,6 +571,29 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
   }
 
   const handleManualRefresh = async () => {
+    // 1. Implement 5-minute cache block check
+    const now = Date.now();
+    let allFresh = true;
+    for (const leg of route.legs) {
+      const legKey = `${leg.trainNumber}|${leg.fromStation.code}|${leg.toStation.code}|${leg.journeyDate}`;
+      const syncKey = `${leg.trainNumber}|${leg.journeyDate}`;
+      const cacheEntry = globalFaresCache[legKey] || globalFaresCache[syncKey];
+      if (!cacheEntry || !cacheEntry.updatedAt) {
+        allFresh = false;
+        break;
+      }
+      const diffMs = now - new Date(cacheEntry.updatedAt).getTime();
+      if (diffMs > 5 * 60 * 1000) { // 5 minutes cache lock
+        allFresh = false;
+        break;
+      }
+    }
+    
+    if (allFresh) {
+      console.log("Blocking refresh: Data is already fresh (within 5 minutes)");
+      return;
+    }
+
     setIsRefreshing(true);
     try {
       const fetchPromises = route.legs.map(async (leg) => {
@@ -582,7 +606,15 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
           if (res.ok) {
              const data = await res.json();
              if (data.success && data.data) {
-                 return { legKey, data: data.data, updatedAt: data.updatedAt, originCode: data.originCode, originName: data.originName };
+                 return { 
+                   legKey, 
+                   trainNumber: leg.trainNumber,
+                   journeyDate: leg.journeyDate,
+                   data: data.data, 
+                   updatedAt: data.updatedAt, 
+                   originCode: data.originCode, 
+                   originName: data.originName 
+                 };
              }
           }
         } catch (e) {
@@ -596,7 +628,11 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
       const updates: Record<string, any> = {};
       results.forEach(res => {
          if (res) {
-            updates[res.legKey] = { data: res.data, updatedAt: res.updatedAt, originCode: res.originCode, originName: res.originName };
+            const syncKey = `${res.trainNumber}|${res.journeyDate}`;
+            const cacheObj = { data: res.data, updatedAt: res.updatedAt, originCode: res.originCode, originName: res.originName };
+            // Save to both key types to trigger route-wide synchronization instantly
+            updates[res.legKey] = cacheObj;
+            updates[syncKey] = cacheObj;
          }
       });
       

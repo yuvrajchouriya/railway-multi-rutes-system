@@ -89,7 +89,15 @@ export async function searchLiveTrainsConfirmTkt(
     return true;
   });
 
-  return trains.map((t: any): TrainLeg => {
+  const formattedDateForCal = (() => {
+    if (date.includes('-') && date.split('-')[0].length === 4) {
+      const [year, month, day] = date.split('-');
+      return `${day}-${month}-${year}`;
+    }
+    return date;
+  })();
+
+  const legs = await Promise.all(trains.map(async (t: any): Promise<TrainLeg> => {
     const depTime = (t.departureTime || t.departureTimeStr || "00:00").replace('.', ':');
     const arrTime = (t.arrivalTime || t.arrivalTimeStr || "00:00").replace('.', ':');
     
@@ -162,6 +170,68 @@ export async function searchLiveTrainsConfirmTkt(
       processCacheObj(t.availabilityCacheTatkal, true);
     }
 
+    // If any class status is "Not Available" / "NOT AVAILABLE" (and it's not Tatkal), trigger a fast live lookup
+    const staleClasses = classes.filter(c => {
+      const isTat = c.classType.includes('Tatkal');
+      const st = (c.statusText || '').toUpperCase();
+      return !isTat && (st.includes('NOT AVAILABLE') || st.includes('NO ROOM') || st.includes('REGRET'));
+    });
+
+    if (staleClasses.length > 0) {
+      try {
+        const calPromises = staleClasses.map(async (c) => {
+          try {
+            const calUrl = `https://cttrainsapi.confirmtkt.com/api/v1/availability/2monthcalendar?trainNumber=${t.trainNumber}&sourceStationCode=${from}&destinationStationCode=${to}&trainClass=${c.classType}&quota=GN&startDate=${formattedDateForCal}&querysource=ct-web`;
+            const calRes = await fetch(calUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+            const calJson = await calRes.json();
+            const calData = calJson?.data;
+            if (calData && calData[formattedDateForCal]) {
+              const info = calData[formattedDateForCal];
+              const statusStr = (info.availabilityDisplayName || info.predictionDisplayName || 'UNKNOWN');
+              const statusUpper = statusStr.toUpperCase();
+              
+              let availability: any = 'UNKNOWN';
+              let availableSeats = undefined;
+              let waitlistNumber = undefined;
+              
+              if (statusUpper.includes('AVL') || statusUpper.includes('AVAILABLE')) {
+                availability = 'AVAILABLE';
+                const m = statusUpper.match(/\d+/);
+                if (m) availableSeats = parseInt(m[0]);
+              } else if (statusUpper.includes('RAC')) {
+                availability = 'RAC';
+                const m = statusUpper.match(/\d+/);
+                if (m) waitlistNumber = parseInt(m[0]);
+              } else if (statusUpper.includes('WL') || statusUpper.includes('WAIT')) {
+                availability = 'WL';
+                const m = statusUpper.match(/WL\s*(\d+)/) || statusUpper.match(/\d+/);
+                if (m) waitlistNumber = parseInt(m[1] || m[0]);
+              }
+
+              c.availability = availability;
+              c.availableSeats = availableSeats;
+              c.waitlistNumber = waitlistNumber;
+              c.statusText = statusStr;
+              if (info.predictionPercentage) {
+                c.confirmProbabilityPercent = info.predictionPercentage;
+                c.confirmProbability = info.predictionPercentage > 70 ? 'HIGH' : 'MEDIUM';
+              }
+            }
+          } catch(e) {
+            console.error(`Server-side cal fetch failed for ${t.trainNumber} ${c.classType}:`, (e as any).message);
+          }
+        });
+
+        // Fast parallel resolution on server side with 2.2 seconds limit
+        await Promise.race([
+          Promise.all(calPromises),
+          new Promise(r => setTimeout(r, 2200))
+        ]);
+      } catch (e) {
+        console.error("Server-side live calendar resolution failed:", e);
+      }
+    }
+
     return {
       trainNumber: t.trainNumber,
       trainName: t.trainName,
@@ -184,7 +254,9 @@ export async function searchLiveTrainsConfirmTkt(
       totalHalts: 0,
       hasPantry: t.hasPantry || false,
     };
-  });
+  }));
+
+  return legs;
 }
 
 export async function getClassAvailability(
