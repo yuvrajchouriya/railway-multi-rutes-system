@@ -283,7 +283,7 @@ export async function GET(request: Request) {
          // Skip 1A Tatkal
          if (cls === '1A' && quota === 'TQ') continue;
          
-          const exists = classes.some((c: any) => c.classType === cls && c.quota === quota && c.status !== 'NOT AVAILABLE' && c.status !== 'Not Available');
+          const exists = !forceRefresh && classes.some((c: any) => c.classType === cls && c.quota === quota && c.status !== 'NOT AVAILABLE' && c.status !== 'Not Available');
           if (!exists) {
               fetchPromises.push((async () => {
                   try {
