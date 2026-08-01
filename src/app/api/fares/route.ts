@@ -70,12 +70,12 @@ export async function GET(request: Request) {
             .eq('journey_date', formattedDateForDB);
             
         if (!cacheErr && cachedData && cachedData.length > 0) {
-            // Check if cache is fresh (e.g., < 4 hours old)
+            // Check if cache is fresh (e.g., < 15 minutes old)
             const lastUpdated = new Date(cachedData[0].updated_at).getTime();
             const now = new Date().getTime();
             const diffHours = (now - lastUpdated) / (1000 * 60 * 60);
 
-            if (diffHours < 4) {
+            if (diffHours < 0.25) {
                 // Reconstruct classes array from cache
                 const classes = cachedData.map(c => {
                     let classType = c.class_type;
