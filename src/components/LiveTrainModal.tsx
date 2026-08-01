@@ -564,7 +564,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
             </button>
 
             <button
-              onClick={fetchLiveStatus}
+              onClick={() => fetchLiveStatus()}
               disabled={loading}
               className="p-2 rounded-xl bg-[#25344D] hover:bg-[#324567] text-gray-200 transition-colors disabled:opacity-50"
               title="Refresh"
