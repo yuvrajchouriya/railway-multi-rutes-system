@@ -301,12 +301,15 @@ export async function GET(request: Request) {
                        const fallbackFare = fallbackFares[`${quota}-${cls}`];
                        const fare = parseInt(info.fare || calJson.fare || calData.fare || fallbackFare || "0", 10);
                       if (fare > 0 || info.availabilityDisplayName) {
-                        // Remove the existing 'NOT AVAILABLE' entry if we are replacing it with a fresh status
+                        // Remove the existing entry but preserve the original fare if available
+                        const originalEntry = classes.find((c: any) => c.classType === cls && c.quota === quota);
+                        const finalFare = originalEntry && originalEntry.fare > 0 ? originalEntry.fare : fare;
+                        
                         classes = classes.filter((c: any) => !(c.classType === cls && c.quota === quota));
                         classes.push({
                           classType: cls,
                           quota: quota,
-                          fare: fare,
+                          fare: finalFare,
                           status: info.availabilityDisplayName || info.predictionDisplayName || 'UNKNOWN'
                         });
                       }
