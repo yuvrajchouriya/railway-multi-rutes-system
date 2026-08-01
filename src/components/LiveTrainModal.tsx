@@ -581,7 +581,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
               <WifiOff className="w-4 h-4 text-amber-200 animate-pulse" />
               <span>📶 Offline Mode Active: Showing Saved Timetable & GPS (Zero Data Required)</span>
             </div>
-            <button onClick={fetchLiveStatus} className="px-2.5 py-1 bg-white text-black rounded-md text-[10px] font-black hover:bg-gray-100">
+            <button onClick={() => fetchLiveStatus()} className="px-2.5 py-1 bg-white text-black rounded-md text-[10px] font-black hover:bg-gray-100">
               Retry Online
             </button>
           </div>
