@@ -45,7 +45,7 @@ export default function SearchForm({
     <div className="space-y-4">
       <form
         onSubmit={submit}
-        className="bg-[var(--color-brand-navy-card)] border border-[#3A506B] rounded-2xl p-6 shadow-2xl relative mt-4"
+        className="bg-[var(--color-brand-navy-card)] border border-[#3A506B] rounded-2xl p-6 shadow-2xl relative mt-4 z-40"
       >
         <div className="flex flex-col md:flex-row items-stretch gap-4 relative">
           
