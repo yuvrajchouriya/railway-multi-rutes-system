@@ -679,7 +679,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
             <div className="flex flex-col items-center justify-center py-16 text-center px-4">
               <AlertCircle className="w-8 h-8 text-red-400 mb-2" />
               <p className="text-sm font-bold text-red-400 mb-3">{error}</p>
-              <button onClick={fetchLiveStatus} className="px-4 py-2 bg-blue-600 text-xs font-bold rounded-lg text-white">
+              <button onClick={() => fetchLiveStatus()} className="px-4 py-2 bg-blue-600 text-xs font-bold rounded-lg text-white">
                 Retry
               </button>
             </div>
