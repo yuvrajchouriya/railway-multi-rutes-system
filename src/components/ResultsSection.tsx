@@ -57,9 +57,14 @@ export default function ResultsSection({
   
   useEffect(() => {
     if (scrollContainerRef.current) {
-      const activeBtn = scrollContainerRef.current.querySelector('.date-btn-active');
+      const activeBtn = scrollContainerRef.current.querySelector('.date-btn-active') as HTMLElement;
       if (activeBtn) {
-        activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        const container = scrollContainerRef.current;
+        // Manually center the active button in the scroll container (works on PC + mobile)
+        const btnLeft = activeBtn.offsetLeft;
+        const btnWidth = activeBtn.offsetWidth;
+        const containerWidth = container.offsetWidth;
+        container.scrollLeft = btnLeft - containerWidth / 2 + btnWidth / 2;
       }
     }
   }, [date]);

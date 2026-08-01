@@ -351,6 +351,8 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
   const [expanded, setExpanded] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
+  // Track when user last manually clicked Refresh (not search load time)
+  const [lastManualRefreshAt, setLastManualRefreshAt] = useState<number>(0);
 
   useEffect(() => {
     try {
@@ -571,28 +573,14 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
   }
 
   const handleManualRefresh = async () => {
-    // 1. Implement 5-minute cache block check
+    // 5-minute lock: only block if user manually refreshed within last 5 minutes
+    // (does NOT block based on search load time — only tracks actual refresh button clicks)
     const now = Date.now();
-    let allFresh = true;
-    for (const leg of route.legs) {
-      const legKey = `${leg.trainNumber}|${leg.fromStation.code}|${leg.toStation.code}|${leg.journeyDate}`;
-      const syncKey = `${leg.trainNumber}|${leg.journeyDate}`;
-      const cacheEntry = globalFaresCache[legKey] || globalFaresCache[syncKey];
-      if (!cacheEntry || !cacheEntry.updatedAt) {
-        allFresh = false;
-        break;
-      }
-      const diffMs = now - new Date(cacheEntry.updatedAt).getTime();
-      if (diffMs > 5 * 60 * 1000) { // 5 minutes cache lock
-        allFresh = false;
-        break;
-      }
-    }
-    
-    if (allFresh) {
-      console.log("Blocking refresh: Data is already fresh (within 5 minutes)");
+    if (lastManualRefreshAt > 0 && now - lastManualRefreshAt < 5 * 60 * 1000) {
+      console.log("Blocking refresh: Manually refreshed less than 5 minutes ago");
       return;
     }
+    setLastManualRefreshAt(now);
 
     setIsRefreshing(true);
     try {
