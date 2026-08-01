@@ -328,6 +328,25 @@ export async function GET(request: Request) {
             Promise.allSettled(fetchPromises),
             new Promise(r => setTimeout(r, 3500))
         ]);
+
+        // Save the fresh live status to database cache immediately
+        try {
+            const liveInserts = classes.map(c => ({
+                train_no: trainNo,
+                from_station: from,
+                to_station: to,
+                journey_date: formattedDateForDB,
+                class_type: c.quota === 'TQ' ? `TQ-${c.classType}` : c.classType,
+                fare: c.fare || 0,
+                status: c.status || 'UNKNOWN',
+                updated_at: nowIso
+            }));
+            if (liveInserts.length > 0) {
+                supabase.from('route_availability_cache').upsert(liveInserts, { onConflict: 'train_no,from_station,to_station,journey_date,class_type' }).then();
+            }
+        } catch (e) {
+            console.error("Failed to save live calendar results to database cache:", e);
+        }
     }
 
     if (classes.length === 0) {
