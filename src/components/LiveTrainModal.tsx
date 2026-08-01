@@ -289,6 +289,7 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
   // Audio Beep Alarm Generator
   const startRingingAlarm = () => {
+    if (alarmIntervalRef.current) return; // Already ringing
     setIsAlarmRinging(true);
     try {
       if (!audioCtxRef.current) {
@@ -337,10 +338,20 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
 
     if (currentSeq && targetStnObj.sequence) {
       const currStnObj = data.route.find((s: any) => s.sequence === currentSeq) || data.route[0];
-      const distRemaining = Math.max(0, (targetStnObj.distanceKm || targetStnObj.distance || 0) - (currStnObj?.distanceKm || currStnObj?.distance || 0));
+      
+      const targetDist = targetStnObj.distanceKm || targetStnObj.distance || 0;
+      const currentDist = currStnObj.distanceKm || currStnObj.distance || 0;
+      const distRemaining = targetDist - currentDist;
 
-      if (distRemaining <= alarmDistanceKm && !isAlarmRinging) {
-        startRingingAlarm();
+      // Only trigger if station is ahead or we are exactly there
+      if (distRemaining >= 0 && distRemaining <= alarmDistanceKm) {
+        if (!alarmIntervalRef.current) {
+          startRingingAlarm();
+        }
+      } else if (distRemaining < 0) {
+        // Train has passed the station, automatically turn off alarm
+        setIsAlarmActive(false);
+        stopRingingAlarm();
       }
     }
   }, [isAlarmActive, targetAlarmStation, alarmDistanceKm, data]);
