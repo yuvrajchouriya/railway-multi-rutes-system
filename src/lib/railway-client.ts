@@ -181,7 +181,9 @@ export async function searchLiveTrainsConfirmTkt(
       try {
         const calPromises = staleClasses.map(async (c) => {
           try {
-            const calUrl = `https://cttrainsapi.confirmtkt.com/api/v1/availability/2monthcalendar?trainNumber=${t.trainNumber}&sourceStationCode=${from}&destinationStationCode=${to}&trainClass=${c.classType}&quota=GN&startDate=${formattedDateForCal}&querysource=ct-web`;
+            const actualFrom = t.fromStnCode || t.source || from;
+            const actualTo = t.toStnCode || t.destination || to;
+            const calUrl = `https://cttrainsapi.confirmtkt.com/api/v1/availability/2monthcalendar?trainNumber=${t.trainNumber}&sourceStationCode=${actualFrom}&destinationStationCode=${actualTo}&trainClass=${c.classType}&quota=GN&startDate=${formattedDateForCal}&querysource=ct-web`;
             const calRes = await fetch(calUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
             const calJson = await calRes.json();
             const calData = calJson?.data;
