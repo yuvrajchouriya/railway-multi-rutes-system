@@ -363,6 +363,8 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
     } catch (e) {}
   }, [route.id, route.legs]);
 
+
+
   const toggleFullRouteWishlist = (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
@@ -885,12 +887,7 @@ export default function RouteCard({ route, globalFaresCache, fetchingLegs, setGl
                 </button>
               )}
 
-              {(isAnyFetching || isRefreshing) && (
-                <div className="flex items-center gap-1.5 px-3 h-10 text-[12px] font-bold text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-yellow-400" />
-                  Loading Seats...
-                </div>
-              )}
+               {/* Removed duplicate Loading Seats... pill */}
 
               <button
                 onClick={() => setExpanded(!expanded)}
