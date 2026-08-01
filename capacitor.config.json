@@ -3,7 +3,7 @@
   "appName": "RailSathi",
   "webDir": "public",
   "server": {
-    "url": "https://railsathi.vercel.app",
+    "url": "https://www.railsathi.in",
     "cleartext": true
   }
 }
