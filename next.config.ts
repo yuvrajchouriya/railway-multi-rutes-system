@@ -57,18 +57,15 @@ const nextConfig: NextConfig = {
         headers: securityHeaders,
       },
       {
-        // CORS: restrict API routes to same origin only
-        // In production this blocks cross-origin callers from other domains
+        // CORS: allow all origins (shield.ts handles strict origin verification internally)
         source: '/api/:path*',
         headers: [
           {
             key: 'Access-Control-Allow-Origin',
-            value: process.env.NODE_ENV === 'production'
-              ? (process.env.NEXT_PUBLIC_APP_URL || 'https://railsathi.vercel.app')
-              : 'http://localhost:3000',
+            value: '*',
           },
           { key: 'Access-Control-Allow-Methods', value: 'GET, OPTIONS' },
-          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, X-RailSathi-Key' },
+          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, X-RailSathi-Key, x-railsathi-token, x-railsathi-time, x-railsathi-client' },
         ],
       },
     ];

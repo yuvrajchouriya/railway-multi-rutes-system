@@ -55,6 +55,11 @@ export function verifyApiKey(request: Request | { headers: Headers }): boolean {
   const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || 'https://railsathi.vercel.app';
 
   if (process.env.NODE_ENV === 'production') {
+    // Allow Capacitor mobile origins natively
+    if (origin && (origin === 'http://localhost' || origin === 'capacitor://localhost')) {
+      return true; // Bypass strict origin check for mobile app wrapper
+    }
+
     if (secFetchSite && secFetchSite !== 'same-origin' && secFetchSite !== 'same-site') {
       return false;
     }
