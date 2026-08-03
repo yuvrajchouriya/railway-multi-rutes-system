@@ -31,13 +31,13 @@ jobs:
 
       - name: Build Next.js Static Export for Android
         run: |
-          echo "NEXT_PUBLIC_API_BASE_URL=https://www.railsathi.in" >> .env.production
           rm -rf src/app/api
           cp next.config.ts next.config.ts.bak
           echo 'import type { NextConfig } from "next"; const nextConfig: NextConfig = { output: "export", images: { unoptimized: true }, typescript: { ignoreBuildErrors: true }, eslint: { ignoreDuringBuilds: true } }; export default nextConfig;' > next.config.ts
           npm run build
           mv next.config.ts.bak next.config.ts
         env:
+          NEXT_PUBLIC_API_BASE_URL: 'https://www.railsathi.in'
           NEXT_PUBLIC_SUPABASE_URL: 'https://dummy.supabase.co'
           SUPABASE_SERVICE_ROLE_KEY: 'dummy-key'
           API_SECRET_KEY: 'dummy-secret'
