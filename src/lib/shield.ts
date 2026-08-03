@@ -70,6 +70,9 @@ export function verifyApiKey(request: Request | { headers: Headers }): boolean {
 // Notice: We NO LONGER reference client-side NEXT_PUBLIC_INTERNAL_API_KEY!
 // Instead, we derive a dynamic signature based on current timestamp dynamically.
 export async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+  const finalUrl = url.startsWith('/api/') ? `${baseUrl}${url}` : url;
+  
   const headers = new Headers(options.headers || {});
   
   const timestamp = Date.now().toString();
@@ -89,7 +92,7 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
   headers.set('x-railsathi-time', timestamp);
   headers.set('x-railsathi-client', 'web'); // Or 'app' if Capacitor
 
-  return fetch(url, {
+  return fetch(finalUrl, {
     ...options,
     headers,
   });

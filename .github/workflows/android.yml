@@ -29,8 +29,15 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
 
-      - name: Build Next.js App
-        run: npm run build
+      - name: Build Next.js Static Export for Android
+        run: |
+          echo "NEXT_PUBLIC_API_BASE_URL=https://www.railsathi.in" >> .env.production
+          mv src/app/api src/app/api_temp
+          cp next.config.ts next.config.ts.bak
+          echo 'import type { NextConfig } from "next"; const nextConfig: NextConfig = { output: "export", images: { unoptimized: true } }; export default nextConfig;' > next.config.ts
+          npm run build
+          mv next.config.ts.bak next.config.ts
+          mv src/app/api_temp src/app/api
         env:
           NEXT_PUBLIC_SUPABASE_URL: 'https://dummy.supabase.co'
           SUPABASE_SERVICE_ROLE_KEY: 'dummy-key'

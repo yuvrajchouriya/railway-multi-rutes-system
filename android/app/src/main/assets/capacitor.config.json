@@ -1,9 +1,5 @@
 {
 	"appId": "com.railsathi.app",
 	"appName": "RailSathi",
-	"webDir": "public",
-	"server": {
-		"url": "https://www.railsathi.in",
-		"cleartext": true
-	}
+	"webDir": "out"
 }
