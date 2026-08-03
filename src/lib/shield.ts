@@ -37,9 +37,11 @@ export function verifyApiKey(request: Request | { headers: Headers }): boolean {
     return false;
   }
 
-  // Prevent Replay Attacks: Token window strictly limit to 120 seconds (2 mins)
+  // Prevent Replay Attacks: Token window limit to 1 hour (3600 seconds)
+  // Many users have phone clocks that are slightly out of sync with real time.
+  // Using a tight 2-minute window causes valid requests from those users to be blocked.
   const timeDifference = Math.abs(Date.now() - parseInt(clientTimestamp, 10));
-  if (isNaN(timeDifference) || timeDifference > 120_000) {
+  if (isNaN(timeDifference) || timeDifference > 3600_000) {
     return false;
   }
 
@@ -49,25 +51,8 @@ export function verifyApiKey(request: Request | { headers: Headers }): boolean {
     return false;
   }
 
-  // 2. Browser origin check (Sec-Fetch-Site is set by browsers automatically)
-  const secFetchSite = headers.get('sec-fetch-site');
-  const origin = headers.get('origin');
-  const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || 'https://railsathi.vercel.app';
-
-  if (process.env.NODE_ENV === 'production') {
-    // Allow Capacitor mobile origins natively
-    if (origin && (origin === 'http://localhost' || origin === 'capacitor://localhost')) {
-      return true; // Bypass strict origin check for mobile app wrapper
-    }
-
-    if (secFetchSite && secFetchSite !== 'same-origin' && secFetchSite !== 'same-site') {
-      return false;
-    }
-    if (origin && origin !== allowedOrigin) {
-      return false;
-    }
-  }
-
+  // Token validation passed. We trust the request.
+  // Removing strict browser origin checks as they can falsely block Capacitor WebViews on certain Android versions.
   return true;
 }
 
