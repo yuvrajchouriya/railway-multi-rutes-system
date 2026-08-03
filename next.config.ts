@@ -7,21 +7,14 @@ const withPWA = withPWAInit({
   register: true,
 });
 
-// ── Security HTTP Headers ──────────────────────────────────────────────
+// Security HTTP Headers
 const securityHeaders = [
-  // Prevent clickjacking — only allow embedding from same origin
   { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
-  // Prevent MIME type sniffing attacks
   { key: 'X-Content-Type-Options', value: 'nosniff' },
-  // Control referrer information sent with requests
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  // Enable DNS prefetching for performance
   { key: 'X-DNS-Prefetch-Control', value: 'on' },
-  // Restrict browser features (geolocation allowed for GPS speedometer)
   { key: 'Permissions-Policy', value: 'geolocation=(self), camera=(), microphone=(), payment=()' },
-  // Strict-Transport-Security (HSTS)
   { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
-  // Content Security Policy — restrict resource origins to self
   {
     key: 'Content-Security-Policy',
     value: [
@@ -38,7 +31,6 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  // Proxy /scraper/ → http://127.0.0.1:3001/ so server-side fetch works
   async rewrites() {
     return [
       {
@@ -48,16 +40,13 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // ── Security Headers on all pages ─────────────────────────────────
   async headers() {
     return [
       {
-        // Apply security headers to all routes
         source: '/:path*',
         headers: securityHeaders,
       },
       {
-        // CORS: allow all origins (shield.ts handles strict origin verification internally)
         source: '/api/:path*',
         headers: [
           {
