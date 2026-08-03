@@ -29,9 +29,9 @@ export function decryptPayload(ciphertext: string): any {
     const decryptedStr = bytes.toString(CryptoJS.enc.Utf8);
     const parsed = JSON.parse(decryptedStr);
 
-    // Validate timestamp (prevent replay attack within 2 minutes window)
+    // Validate timestamp (prevent replay attack within 1 hour window)
     const now = Date.now();
-    if (!parsed.timestamp || Math.abs(now - parsed.timestamp) > 120000) {
+    if (!parsed.timestamp || Math.abs(now - parsed.timestamp) > 3600000) {
       throw new Error("Payload expired");
     }
 
