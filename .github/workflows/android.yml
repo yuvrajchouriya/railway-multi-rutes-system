@@ -32,6 +32,7 @@ jobs:
       - name: Build Next.js Static Export for Android
         run: |
           rm -rf src/app/api
+          echo "NEXT_PUBLIC_API_BASE_URL=https://www.railsathi.in" > .env.production
           cp next.config.ts next.config.ts.bak
           echo 'import type { NextConfig } from "next"; const nextConfig: NextConfig = { output: "export", images: { unoptimized: true }, typescript: { ignoreBuildErrors: true }, eslint: { ignoreDuringBuilds: true } }; export default nextConfig;' > next.config.ts
           npm run build
