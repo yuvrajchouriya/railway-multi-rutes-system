@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Search, Train, RefreshCw, AlertCircle, X, ChevronRight, Calendar, MapPin, Sparkles } from 'lucide-react';
+import { apiFetch } from '@/lib/shield';
 
 interface TrainSearchCardProps {
   onSelectTrain: (trainNumber: string, trainName: string) => void;
@@ -81,7 +82,7 @@ export default function TrainSearchCard({ onSelectTrain }: TrainSearchCardProps)
         }
         const token = Math.abs(hash).toString(36);
 
-        fetch(`/api/train-info?number=${qLower}`, {
+        apiFetch(`/api/train-info?number=${qLower}`, {
           headers: {
             'x-railsathi-token': token,
             'x-railsathi-time': timestamp
