@@ -3,7 +3,7 @@ import CryptoJS from 'crypto-js';
 // Client secret is hardcoded but we use AES encryption with it.
 // Anyone intercepting the payload will just see ciphertext.
 // In a true enterprise scenario, this would be rotated, but for this app it's enough to stop 99% of scraping.
-const ENCRYPTION_KEY = process.env.NEXT_PUBLIC_INTERNAL_API_KEY || 'rls_internal_9x2k7m4p8q_secure_encrypt';
+const ENCRYPTION_KEY = 'rls_internal_9x2k7m4p8q_secure_encrypt';
 
 export function encryptPayload(payload: any): string {
   try {
