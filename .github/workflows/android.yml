@@ -54,6 +54,18 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleDebug
 
+      - name: Generate Keystore if not exists
+        working-directory: ./android/app
+        run: |
+          if [ ! -f railsathi.keystore ]; then
+            keytool -genkey -v -keystore railsathi.keystore -alias key0 -keyalg RSA -keysize 2048 -validity 10000 -storepass railsathipass -keypass railsathipass -dname "CN=RailSathi, OU=RailSathi, O=RailSathi, L=India, ST=India, C=IN"
+            git config user.name "GitHub Actions Bot"
+            git config user.email "actions@github.com"
+            git add railsathi.keystore
+            git commit -m "chore: generated android keystore for Play Store signing"
+            git push origin main
+          fi
+
       - name: Build AAB (Release)
         working-directory: ./android
         run: |
