@@ -4,6 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { X, RefreshCw, Train, MapPin, AlertCircle, Calendar, Bell, Share2, ChevronDown, Check, MessageSquare, ChevronUp, Heart, Volume2, VolumeX, CheckCircle, Navigation, Gauge, Zap, Compass, ShieldAlert, WifiOff } from 'lucide-react';
 import ProximityNotificationToast from './ProximityNotificationToast';
 import { apiFetch, apiFetchSecure } from '@/lib/shield';
+import { Capacitor } from '@capacitor/core';
+import { Share } from '@capacitor/share';
+import { Geolocation } from '@capacitor/geolocation';
 
 interface LiveTrainModalProps {
   trainNumber: string;
@@ -68,7 +71,17 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
     return R * c;
   };
 
-  const startGpsSpeedometer = () => {
+  const startGpsSpeedometer = async () => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const perm = await Geolocation.requestPermissions();
+        if (perm.location !== 'granted' && perm.coarseLocation !== 'granted') {
+          setGpsStatus('denied');
+          return;
+        }
+      } catch(e) {}
+    }
+
     if (!navigator.geolocation) {
       setGpsStatus('error');
       return;
@@ -373,11 +386,20 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
   };
 
   const handleShare = async () => {
-    const origin = window.location.origin;
-    const shareUrl = `${origin}/?trainNo=${trainNumber}`;
+    const domain = "https://www.railsathi.in";
+    const shareUrl = `${domain}/?trainNo=${trainNumber}`;
     const text = `🚆 Train ${trainNumber} ${data?.train?.name || trainName}\n📍 Status: ${data?.delayMinutes === 0 ? 'On Time' : (data?.delayMinutes || 0) + ' mins late'}\n📌 Current Location: ${data?.currentLocation?.stationName || 'En Route'}\n\n📲 Check Live Status on RailSathi:\n${shareUrl}`;
 
-    if (navigator.share) {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await Share.share({
+          title: `RailSathi - Live Status Train ${trainNumber}`,
+          text: text,
+          url: shareUrl,
+          dialogTitle: 'Share Live Train Status'
+        });
+      } catch(e) {}
+    } else if (navigator.share) {
       try {
         await navigator.share({
           title: `RailSathi - Live Status Train ${trainNumber}`,
@@ -1180,10 +1202,16 @@ export default function LiveTrainModal({ trainNumber, trainName, onClose }: Live
                 </div>
 
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => alert('📝 Thank you for your feedback!')}
-                    className="flex-1 py-2 bg-[#23334B] hover:bg-[#2C3E5A] text-gray-200 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 border border-[#34496B]"
-                  >
+                    <button
+                      onClick={() => {
+                        if (Capacitor.isNativePlatform()) {
+                          window.open('market://details?id=com.railsathi.app', '_system');
+                        } else {
+                          window.open('https://play.google.com/store/apps/details?id=com.railsathi.app', '_blank');
+                        }
+                      }}
+                      className="flex-1 py-2 bg-[#23334B] hover:bg-[#2C3E5A] text-gray-200 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 border border-[#34496B]"
+                    >
                     <MessageSquare className="w-3.5 h-3.5 text-blue-400" />
                     <span>Feedback</span>
                   </button>
