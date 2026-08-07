@@ -65,6 +65,12 @@ export default function DisclaimerPage() {
 
           <h2 className="text-lg font-bold text-white mt-8 mb-2">5. Limitation of Liability</h2>
           <p>RailSathi and its developers shall not be liable for any loss, delay, missed journey, inconvenience, or damages resulting from reliance on the information provided by this application.</p>
+
+          <h2 className="text-lg font-bold text-white mt-8 mb-2">6. Contact Us</h2>
+          <p>For any questions regarding this Disclaimer, please contact us:</p>
+          <p className="mt-1"><strong>RailSathi</strong></p>
+          <p>Website: <a href="https://www.railsathi.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline hover:text-cyan-300">https://www.railsathi.in</a></p>
+          <p>Email: <a href="mailto:officialrailsathi@gmail.com" className="text-cyan-400 underline hover:text-cyan-300">officialrailsathi@gmail.com</a></p>
         </div>
       </div>
     </div>

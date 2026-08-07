@@ -82,6 +82,7 @@ export default function TermsPage() {
           <h2 className="text-lg font-bold text-white mt-8 mb-2">10. Contact Us</h2>
           <p>For any questions regarding these Terms &amp; Conditions, please contact:</p>
           <p className="mt-1"><strong>RailSathi</strong></p>
+          <p>Website: <a href="https://www.railsathi.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline hover:text-cyan-300">https://www.railsathi.in</a></p>
           <p>Email: <a href="mailto:officialrailsathi@gmail.com" className="text-cyan-400 underline hover:text-cyan-300">officialrailsathi@gmail.com</a></p>
         </div>
       </div>

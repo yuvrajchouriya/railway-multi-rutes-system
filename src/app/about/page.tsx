@@ -57,7 +57,9 @@ export default function AboutPage() {
 
           <p className="text-yellow-300 text-sm">Users should verify important railway information through the official sources listed above before making travel decisions.</p>
 
-          <h2 className="text-lg font-bold text-white mt-8 mb-2">Contact</h2>
+          <h2 className="text-lg font-bold text-white mt-8 mb-2">Contact Us</h2>
+          <p className="mt-1"><strong>RailSathi</strong></p>
+          <p>Website: <a href="https://www.railsathi.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline hover:text-cyan-300">https://www.railsathi.in</a></p>
           <p>Email: <a href="mailto:officialrailsathi@gmail.com" className="text-cyan-400 underline hover:text-cyan-300">officialrailsathi@gmail.com</a></p>
         </div>
       </div>

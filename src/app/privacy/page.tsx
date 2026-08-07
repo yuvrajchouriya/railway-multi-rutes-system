@@ -29,7 +29,7 @@ export default function PrivacyPage() {
           <h2 className="text-lg font-bold text-white mt-8 mb-2">1. About RailSathi</h2>
           <p>RailSathi is an independent railway information application designed to help users plan railway journeys across India.</p>
           <div className="bg-[#1a1f2e] border border-yellow-700 rounded-xl p-4 mt-2">
-            <p className="text-yellow-400 font-bold">⚠️ Important Disclaimer</p>
+            <p className="text-yellow-400 font-bold">Government Disclaimer</p>
             <p className="mt-1">RailSathi is <strong>NOT affiliated with, endorsed by, authorized by, or associated</strong> with Indian Railways, IRCTC, CRIS, NTES, or any Government of India organization.</p>
           </div>
 
@@ -137,7 +137,7 @@ export default function PrivacyPage() {
             <li>Firebase</li>
             <li>Google AdMob (if advertisements are displayed)</li>
           </ul>
-          <p className="mt-2">These services operate according to their own privacy policies. Train schedule, live train status, PNR status, seat availability, and other railway information are displayed using publicly available official railway information sources and, where applicable, authorized data providers. RailSathi does not guarantee the accuracy or completeness of this information.</p>
+          <p className="mt-2">These services operate according to their own privacy policies. For official railway services, ticket booking, and verification of railway information, users should refer to the official railway websites listed in the "Official Information Sources" section. Train schedule, live train status, PNR status, seat availability, and other railway information are displayed using publicly available official railway information sources and, where applicable, authorized data providers. RailSathi does not guarantee the accuracy or completeness of this information.</p>
 
           {/* Section 7 */}
           <h2 className="text-lg font-bold text-white mt-8 mb-2">7. Data Security</h2>
@@ -174,6 +174,12 @@ export default function PrivacyPage() {
           <h2 className="text-lg font-bold text-white mt-8 mb-2">12. Contact Us</h2>
           <p>For any questions regarding this Privacy Policy, please contact us:</p>
           <p className="mt-1"><strong>RailSathi</strong></p>
+          <p>
+            Website:{' '}
+            <a href="https://www.railsathi.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline hover:text-cyan-300">
+              https://www.railsathi.in
+            </a>
+          </p>
           <p>
             Email:{' '}
             <a href="mailto:officialrailsathi@gmail.com" className="text-cyan-400 underline hover:text-cyan-300">
