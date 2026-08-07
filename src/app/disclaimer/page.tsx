@@ -19,38 +19,52 @@ export default function DisclaimerPage() {
         </div>
 
         <div className="space-y-6 text-sm sm:text-base leading-relaxed text-gray-300">
-          <p className="font-semibold text-gray-400">Last updated: July 30, 2026</p>
-          
+          <p className="font-semibold text-gray-400">Last Updated: August 2026</p>
+
           <div className="bg-amber-950/20 border border-amber-500/30 rounded-xl p-4 text-amber-300 font-semibold mb-6 text-xs sm:text-sm">
-            IMPORTANT LEGAL NOTICE: Please read this disclaimer carefully before using the RailSathi application.
+            IMPORTANT NOTICE: Please read this disclaimer carefully before using the RailSathi application.
           </div>
 
-          <h2 className="text-lg font-bold text-white mt-8 mb-2">1. No Affiliation with Government or IRCTC</h2>
-          <p>
-            <strong>RailSathi</strong> is a privately developed, independent utility application. 
-            We have **no affiliation, association, authorization, endorsement, or official connection** of any kind with:
-          </p>
-          <ul className="list-disc pl-5 space-y-2 mt-2">
-            <li><strong>Indian Railways</strong> (IR)</li>
-            <li><strong>Indian Railway Catering and Tourism Corporation</strong> (IRCTC)</li>
-            <li><strong>Centre for Railway Information Systems</strong> (CRIS)</li>
-            <li>Any other government agencies, departments, or official railway administrative bodies in India.</li>
+          <h2 className="text-lg font-bold text-white mt-8 mb-2">1. No Government Affiliation</h2>
+          <p>RailSathi does <strong>NOT</strong> represent any Government entity and is not affiliated with, authorized by, endorsed by, or associated with:</p>
+          <ul className="list-disc pl-5 space-y-1 mt-2">
+            <li>Indian Railways (IR)</li>
+            <li>Indian Railway Catering and Tourism Corporation (IRCTC)</li>
+            <li>Centre for Railway Information Systems (CRIS)</li>
+            <li>National Train Enquiry System (NTES)</li>
+            <li>Ministry of Railways</li>
+            <li>Government of India or any of its departments or agencies</li>
           </ul>
 
-          <h2 className="text-lg font-bold text-white mt-8 mb-2">2. Sourcing of Information</h2>
-          <p>
-            All information displayed in RailSathi—including seat availability, train locations, fares, station names, PNR status, and timetables—is obtained from publicly available information on the web or third-party web services. None of this data is hosted natively or officially managed by RailSathi.
-          </p>
+          <h2 className="text-lg font-bold text-white mt-8 mb-2">2. Official Information Sources</h2>
+          <p>RailSathi displays railway-related information using publicly available official railway information sources and authorized data providers.</p>
+          <p className="font-semibold text-gray-200 mt-3">Official Sources:</p>
+          <ul className="list-disc pl-5 space-y-2 mt-1">
+            <li>Indian Railways — <a href="https://indianrailways.gov.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline hover:text-cyan-300">https://indianrailways.gov.in</a></li>
+            <li>National Train Enquiry System (NTES) — <a href="https://enquiry.indianrail.gov.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline hover:text-cyan-300">https://enquiry.indianrail.gov.in</a></li>
+            <li>IRCTC — <a href="https://www.irctc.co.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline hover:text-cyan-300">https://www.irctc.co.in</a></li>
+            <li>CRIS — <a href="https://cris.org.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline hover:text-cyan-300">https://cris.org.in</a></li>
+          </ul>
+          <p className="mt-2 text-yellow-300">Users should verify important railway information using the official websites listed above before making travel decisions.</p>
 
-          <h2 className="text-lg font-bold text-white mt-8 mb-2">3. Not for Official Bookings</h2>
-          <p>
-            RailSathi is an informational planning assistant. It does not sell tickets, process bookings, handle transaction payments, or modify passenger reservation charts. For official bookings and verified administrative travel information, please use the official channels: **www.irctc.co.in** or the official **IRCTC Rail Connect** application.
-          </p>
+          <h2 className="text-lg font-bold text-white mt-8 mb-2">3. Informational Use Only</h2>
+          <p>RailSathi is provided for information and journey planning purposes only. The application does <strong>not</strong>:</p>
+          <ul className="list-disc pl-5 space-y-1 mt-1">
+            <li>Sell railway tickets</li>
+            <li>Process ticket bookings</li>
+            <li>Accept payments</li>
+            <li>Modify PNR records</li>
+            <li>Modify reservation charts</li>
+            <li>Provide official government railway services</li>
+          </ul>
+          <p className="mt-2">For official ticket booking, please use the official <a href="https://www.irctc.co.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline hover:text-cyan-300">IRCTC website</a>.</p>
 
-          <h2 className="text-lg font-bold text-white mt-8 mb-2">4. Accuracy Guarantee</h2>
-          <p>
-            Because railway timetables and seat bookings change dynamically, the information shown in this app may differ from the actual status. Users are advised to double-check search results against official platforms before making final travel decisions. The developers shall not be liable for any discrepancies.
-          </p>
+          <h2 className="text-lg font-bold text-white mt-8 mb-2">4. Accuracy of Information</h2>
+          <p>Railway schedules, train locations, fares, coach positions, seat availability, PNR status, and other railway information may change without notice. While we strive to provide accurate and timely information, RailSathi cannot guarantee completeness or accuracy at all times.</p>
+          <p className="mt-2 text-yellow-300">Users should always verify important travel information using the official sources listed above before making travel decisions.</p>
+
+          <h2 className="text-lg font-bold text-white mt-8 mb-2">5. Limitation of Liability</h2>
+          <p>RailSathi and its developers shall not be liable for any loss, delay, missed journey, inconvenience, or damages resulting from reliance on the information provided by this application.</p>
         </div>
       </div>
     </div>

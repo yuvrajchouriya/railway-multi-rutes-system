@@ -20,96 +20,170 @@ export default function PrivacyPage() {
 
         <div className="space-y-6 text-sm sm:text-base leading-relaxed text-gray-300">
           <p className="font-semibold text-gray-400">Last Updated: August 2026</p>
-          
+
           <p>
-            Welcome to <strong>RailSathi</strong>. We value your privacy and are committed to protecting your personal information. This Privacy Policy explains how RailSathi collects, uses, and protects information when you use the application.
+            Welcome to <strong>RailSathi</strong>. Your privacy is important to us. This Privacy Policy explains what information RailSathi collects, how it is used, and how we protect it.
           </p>
 
-          <h2 className="text-lg font-bold text-white mt-8 mb-2">1. Information We Collect</h2>
-          <p>RailSathi does not require users to create an account or log in.</p>
-          <p>Depending on the features you use, the app may process the following information:</p>
-          
+          {/* Section 1 */}
+          <h2 className="text-lg font-bold text-white mt-8 mb-2">1. About RailSathi</h2>
+          <p>RailSathi is an independent railway information application designed to help users plan railway journeys across India.</p>
+          <div className="bg-[#1a1f2e] border border-yellow-700 rounded-xl p-4 mt-2">
+            <p className="text-yellow-400 font-bold">⚠️ Important Disclaimer</p>
+            <p className="mt-1">RailSathi is <strong>NOT affiliated with, endorsed by, authorized by, or associated</strong> with Indian Railways, IRCTC, CRIS, NTES, or any Government of India organization.</p>
+          </div>
+
+          {/* Section 2 */}
+          <h2 className="text-lg font-bold text-white mt-8 mb-2">2. Official Information Sources</h2>
+          <p>RailSathi displays railway-related information using publicly available official railway information sources and authorized data providers.</p>
+          <p className="font-semibold text-gray-200 mt-3">Official Sources:</p>
+          <ul className="list-disc pl-5 space-y-2 mt-1">
+            <li>
+              Indian Railways —{' '}
+              <a href="https://indianrailways.gov.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline hover:text-cyan-300">
+                https://indianrailways.gov.in
+              </a>
+            </li>
+            <li>
+              National Train Enquiry System (NTES) —{' '}
+              <a href="https://enquiry.indianrail.gov.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline hover:text-cyan-300">
+                https://enquiry.indianrail.gov.in
+              </a>
+            </li>
+            <li>
+              IRCTC —{' '}
+              <a href="https://www.irctc.co.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline hover:text-cyan-300">
+                https://www.irctc.co.in
+              </a>
+            </li>
+            <li>
+              Centre for Railway Information Systems (CRIS) —{' '}
+              <a href="https://cris.org.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline hover:text-cyan-300">
+                https://cris.org.in
+              </a>
+            </li>
+          </ul>
+          <p className="mt-2 text-yellow-300">Users should always verify important railway information through these official sources before making travel decisions.</p>
+
+          {/* Section 3 */}
+          <h2 className="text-lg font-bold text-white mt-8 mb-2">3. Information We Collect</h2>
+          <p>RailSathi does not require account registration.</p>
+          <p>Depending on the features you use, the app may process the following information.</p>
+
           <h3 className="text-md font-semibold text-gray-200 mt-4">Location</h3>
-          <p>If you enable the GPS Station Alarm or Speedometer feature, RailSathi requests access to your device's location.</p>
+          <p>Location permission is requested only when you use features such as:</p>
           <ul className="list-disc pl-5 space-y-1">
+            <li>GPS Station Alarm</li>
+            <li>Speedometer</li>
+          </ul>
+          <ul className="list-disc pl-5 space-y-1 mt-2">
             <li>Your location is used only to provide these features.</li>
             <li>We do not sell your location information.</li>
+            <li>We do not retain location data on our servers beyond the duration of the active session.</li>
           </ul>
 
           <h3 className="text-md font-semibold text-gray-200 mt-4">Search Information</h3>
-          <p>When you search for trains, the following information may be sent securely to our servers to provide results:</p>
+          <p>To provide railway information, the app may process:</p>
           <ul className="list-disc pl-5 space-y-1">
             <li>Departure Station</li>
             <li>Destination Station</li>
             <li>Travel Date</li>
-            <li>Train Number (when applicable)</li>
+            <li>Train Number (if applicable)</li>
+            <li>PNR Number (only when you request PNR status)</li>
           </ul>
-          <p>This information is used only to provide railway information and is not used to identify you personally.</p>
+          <p className="mt-1">This information is used only to provide the requested railway services.</p>
 
           <h3 className="text-md font-semibold text-gray-200 mt-4">Local Storage</h3>
-          <p>RailSathi stores certain information locally on your device, such as:</p>
+          <p>RailSathi stores certain information only on your device, including:</p>
           <ul className="list-disc pl-5 space-y-1">
             <li>Recent Searches</li>
             <li>Wishlist</li>
             <li>User Preferences</li>
           </ul>
-          <p>This information remains on your device unless you remove it or uninstall the app.</p>
+          <p className="mt-1">You may clear this information at any time by clearing app data or uninstalling the application.</p>
 
-          <h2 className="text-lg font-bold text-white mt-8 mb-2">2. How We Use Information</h2>
+          {/* Section 4 */}
+          <h2 className="text-lg font-bold text-white mt-8 mb-2">4. Information We Do Not Collect</h2>
+          <p>RailSathi does not collect or store:</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Aadhaar Number</li>
+            <li>PAN Number</li>
+            <li>Bank Account Details</li>
+            <li>Debit/Credit Card Information</li>
+            <li>UPI Credentials</li>
+            <li>Government Identity Documents</li>
+          </ul>
+          <p className="mt-2">RailSathi does not process railway ticket bookings or payment transactions.</p>
+
+          {/* Section 5 */}
+          <h2 className="text-lg font-bold text-white mt-8 mb-2">5. How We Use Information</h2>
           <p>Information is used only to:</p>
           <ul className="list-disc pl-5 space-y-1">
             <li>Search trains</li>
+            <li>Display train schedules</li>
             <li>Show live train status</li>
-            <li>Display PNR status</li>
-            <li>Show seat availability</li>
-            <li>Provide route suggestions</li>
-            <li>GPS Station Alarm</li>
-            <li>Improve app performance</li>
+            <li>Show PNR status</li>
+            <li>Display seat availability</li>
+            <li>Show coach position</li>
+            <li>Display fare information</li>
+            <li>Provide GPS Station Alarm</li>
+            <li>Improve app performance and reliability</li>
           </ul>
 
-          <h2 className="text-lg font-bold text-white mt-8 mb-2">3. Data Security</h2>
+          {/* Section 6 */}
+          <h2 className="text-lg font-bold text-white mt-8 mb-2">6. Third-Party Services</h2>
+          <p>RailSathi may use trusted third-party services including:</p>
           <ul className="list-disc pl-5 space-y-1">
-            <li>We use secure communication protocols to protect data transmitted between the app and our servers.</li>
-            <li>We continuously work to protect your information from unauthorized access.</li>
-          </ul>
-
-          <h2 className="text-lg font-bold text-white mt-8 mb-2">4. Third-Party Services</h2>
-          <p>RailSathi may use third-party services to provide functionality, including:</p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>Railway information providers</li>
             <li>Google Play Services</li>
-            <li>Firebase (if applicable)</li>
-            <li>Google AdMob (if advertisements are shown)</li>
+            <li>Firebase</li>
+            <li>Google AdMob (if advertisements are displayed)</li>
           </ul>
-          <p>These services may collect information according to their own privacy policies.</p>
+          <p className="mt-2">These services operate according to their own privacy policies. Train schedule, live status, PNR status, and seat availability data is sourced from publicly available railway data APIs. RailSathi does not guarantee the accuracy or completeness of this information.</p>
 
-          <h2 className="text-lg font-bold text-white mt-8 mb-2">5. Children's Privacy</h2>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>RailSathi is not specifically directed toward children under 13 years of age.</li>
-            <li>We do not knowingly collect personal information from children.</li>
-            <li>If you believe a child has provided personal information, please contact us.</li>
-          </ul>
+          {/* Section 7 */}
+          <h2 className="text-lg font-bold text-white mt-8 mb-2">7. Data Security</h2>
+          <p>We use secure communication methods to protect data transmitted between the application and our servers.</p>
+          <p className="mt-1">Although we take reasonable measures to protect information, no internet transmission method is completely secure. We do not retain any user data on our servers beyond the duration of the active session required to fulfill the request.</p>
 
-          <h2 className="text-lg font-bold text-white mt-8 mb-2">6. Your Choices</h2>
+          {/* Section 8 */}
+          <h2 className="text-lg font-bold text-white mt-8 mb-2">8. Children's Privacy</h2>
+          <p>RailSathi is not intended for children under the age of 13.</p>
+          <p className="mt-1">We do not knowingly collect personal information from children.</p>
+
+          {/* Section 9 */}
+          <h2 className="text-lg font-bold text-white mt-8 mb-2">9. Your Choices</h2>
           <p>You may:</p>
           <ul className="list-disc pl-5 space-y-1">
-            <li>Disable Location permission anytime</li>
+            <li>Disable Location permission at any time</li>
             <li>Clear app data</li>
-            <li>Delete stored preferences</li>
+            <li>Remove saved preferences</li>
             <li>Uninstall the application</li>
           </ul>
 
-          <h2 className="text-lg font-bold text-white mt-8 mb-2">7. Changes to This Privacy Policy</h2>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>We may update this Privacy Policy from time to time.</li>
-            <li>Changes will be reflected on this page with an updated revision date.</li>
-          </ul>
+          {/* Section 10 */}
+          <h2 className="text-lg font-bold text-white mt-8 mb-2">10. Disclaimer</h2>
+          <p>RailSathi is provided for informational purposes only.</p>
+          <p className="mt-1">While we strive to provide accurate railway information, schedules, train locations, PNR status, fares, seat availability, coach position, and other railway information may change at any time.</p>
+          <p className="mt-1">Users should verify important railway information through the official sources listed above before making travel decisions.</p>
 
-          <h2 className="text-lg font-bold text-white mt-8 mb-2">8. Contact Us</h2>
-          <p>If you have any questions regarding this Privacy Policy, please contact us:</p>
-          <p><strong>Email:</strong> officialrailsathi@gmail.com</p>
+          {/* Section 11 */}
+          <h2 className="text-lg font-bold text-white mt-8 mb-2">11. Changes to This Privacy Policy</h2>
+          <p>We may update this Privacy Policy from time to time.</p>
+          <p className="mt-1">The latest version will always be available on this page.</p>
+
+          {/* Section 12 */}
+          <h2 className="text-lg font-bold text-white mt-8 mb-2">12. Contact Us</h2>
+          <p>For any questions regarding this Privacy Policy, please contact us:</p>
+          <p className="mt-1"><strong>RailSathi</strong></p>
+          <p>
+            Email:{' '}
+            <a href="mailto:officialrailsathi@gmail.com" className="text-cyan-400 underline hover:text-cyan-300">
+              officialrailsathi@gmail.com
+            </a>
+          </p>
         </div>
       </div>
     </div>
   );
 }
+
