@@ -25,6 +25,10 @@ export default function AboutPage() {
             <strong>RailSathi</strong> is an independent railway journey planning application designed to help users access railway information such as train schedules, live train running status, PNR status, seat availability, coach position, fare information, and route planning.
           </p>
 
+          <p>
+            RailSathi is intended to help users plan railway journeys by providing railway information in a simple and convenient manner.
+          </p>
+
           <div className="bg-amber-950/20 border border-amber-500/30 rounded-xl p-4 text-amber-300 font-semibold text-xs sm:text-sm">
             RailSathi is <strong>not affiliated with, endorsed by, authorized by, or associated with</strong> Indian Railways, IRCTC, NTES, CRIS, the Ministry of Railways, or any Government of India organization.
           </div>

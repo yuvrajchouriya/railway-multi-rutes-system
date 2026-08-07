@@ -57,7 +57,7 @@ export default function DisclaimerPage() {
             <li>Modify reservation charts</li>
             <li>Provide official government railway services</li>
           </ul>
-          <p className="mt-2">For official ticket booking, please use the official <a href="https://www.irctc.co.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline hover:text-cyan-300">IRCTC website</a>.</p>
+          <p className="mt-2">For official railway services and ticket booking, please use the official <a href="https://www.irctc.co.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline hover:text-cyan-300">IRCTC website</a> or other official Indian Railways websites listed above.</p>
 
           <h2 className="text-lg font-bold text-white mt-8 mb-2">4. Accuracy of Information</h2>
           <p>Railway schedules, train locations, fares, coach positions, seat availability, PNR status, and other railway information may change without notice. While we strive to provide accurate and timely information, RailSathi cannot guarantee completeness or accuracy at all times.</p>

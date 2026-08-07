@@ -44,7 +44,7 @@ export default function TermsPage() {
           </ul>
 
           <h2 className="text-lg font-bold text-white mt-8 mb-2">3. Official Information Sources</h2>
-          <p>RailSathi displays railway information using publicly available official sources.</p>
+          <p>RailSathi displays railway information using publicly available official railway information sources and, where applicable, authorized data providers.</p>
           <ul className="list-disc pl-5 space-y-2 mt-1">
             <li>Indian Railways — <a href="https://indianrailways.gov.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline hover:text-cyan-300">https://indianrailways.gov.in</a></li>
             <li>NTES — <a href="https://enquiry.indianrail.gov.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline hover:text-cyan-300">https://enquiry.indianrail.gov.in</a></li>

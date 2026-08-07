@@ -79,7 +79,6 @@ export default function PrivacyPage() {
           <ul className="list-disc pl-5 space-y-1 mt-2">
             <li>Your location is used only to provide these features.</li>
             <li>We do not sell your location information.</li>
-            <li>We do not retain location data on our servers beyond the duration of the active session.</li>
           </ul>
 
           <h3 className="text-md font-semibold text-gray-200 mt-4">Search Information</h3>
@@ -138,12 +137,12 @@ export default function PrivacyPage() {
             <li>Firebase</li>
             <li>Google AdMob (if advertisements are displayed)</li>
           </ul>
-          <p className="mt-2">These services operate according to their own privacy policies. Train schedule, live status, PNR status, and seat availability data is sourced from publicly available railway data APIs. RailSathi does not guarantee the accuracy or completeness of this information.</p>
+          <p className="mt-2">These services operate according to their own privacy policies. Train schedule, live train status, PNR status, seat availability, and other railway information are displayed using publicly available official railway information sources and, where applicable, authorized data providers. RailSathi does not guarantee the accuracy or completeness of this information.</p>
 
           {/* Section 7 */}
           <h2 className="text-lg font-bold text-white mt-8 mb-2">7. Data Security</h2>
           <p>We use secure communication methods to protect data transmitted between the application and our servers.</p>
-          <p className="mt-1">Although we take reasonable measures to protect information, no internet transmission method is completely secure. We do not retain any user data on our servers beyond the duration of the active session required to fulfill the request.</p>
+          <p className="mt-1">Although we take reasonable measures to protect information, no internet transmission method is completely secure.</p>
 
           {/* Section 8 */}
           <h2 className="text-lg font-bold text-white mt-8 mb-2">8. Children's Privacy</h2>
