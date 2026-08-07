@@ -30,7 +30,7 @@ export default function PrivacyPage() {
           <p>RailSathi is an independent railway information application designed to help users plan railway journeys across India.</p>
           <div className="bg-[#1a1f2e] border border-yellow-700 rounded-xl p-4 mt-2">
             <p className="text-yellow-400 font-bold">Government Disclaimer</p>
-            <p className="mt-1">RailSathi is <strong>NOT affiliated with, endorsed by, authorized by, or associated</strong> with Indian Railways, IRCTC, CRIS, NTES, or any Government of India organization.</p>
+            <p className="mt-1">RailSathi does <strong>NOT represent any Government entity and is not affiliated with, endorsed by, authorized by, or associated with</strong> Indian Railways, IRCTC, NTES, CRIS, the Ministry of Railways, or any Government of India organization.</p>
           </div>
 
           {/* Section 2 */}

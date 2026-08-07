@@ -30,7 +30,7 @@ export default function AboutPage() {
           </p>
 
           <div className="bg-amber-950/20 border border-amber-500/30 rounded-xl p-4 text-amber-300 font-semibold text-xs sm:text-sm">
-            RailSathi is <strong>not affiliated with, endorsed by, authorized by, or associated with</strong> Indian Railways, IRCTC, NTES, CRIS, the Ministry of Railways, or any Government of India organization.
+            RailSathi does <strong>NOT represent any Government entity and is not affiliated with, endorsed by, authorized by, or associated with</strong> Indian Railways, IRCTC, NTES, CRIS, the Ministry of Railways, or any Government of India organization.
           </div>
 
           <p>Railway information is displayed using publicly available official railway information sources and, where applicable, authorized data providers.</p>

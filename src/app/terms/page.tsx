@@ -23,15 +23,8 @@ export default function TermsPage() {
           <p>Welcome to RailSathi. By downloading, installing, accessing, or using the RailSathi application, you agree to be bound by these Terms &amp; Conditions. If you do not agree with these terms, please discontinue using the application.</p>
 
           <h2 className="text-lg font-bold text-white mt-8 mb-2">1. About RailSathi</h2>
-          <p>RailSathi is an independent railway information application. It does <strong>NOT</strong> represent any Government entity and is <strong>NOT</strong> affiliated with, authorized by, endorsed by, or associated with:</p>
-          <ul className="list-disc pl-5 space-y-1 mt-2">
-            <li>Indian Railways (IR)</li>
-            <li>Indian Railway Catering and Tourism Corporation (IRCTC)</li>
-            <li>Centre for Railway Information Systems (CRIS)</li>
-            <li>National Train Enquiry System (NTES)</li>
-            <li>Ministry of Railways</li>
-            <li>Government of India or any of its departments or agencies</li>
-          </ul>
+          <p>RailSathi is an independent railway information application.</p>
+          <p className="mt-2">RailSathi does <strong>NOT represent any Government entity and is not affiliated with, authorized by, endorsed by, or associated with</strong> Indian Railways (IR), Indian Railway Catering and Tourism Corporation (IRCTC), Centre for Railway Information Systems (CRIS), National Train Enquiry System (NTES), Ministry of Railways, Government of India, or any of its departments or agencies.</p>
 
           <h2 className="text-lg font-bold text-white mt-8 mb-2">2. Permitted Use</h2>
           <p>RailSathi is intended only for personal and non-commercial use. You agree not to:</p>
